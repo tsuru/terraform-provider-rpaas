@@ -1,0 +1,12 @@
+module github.com/tsuru/terraform-provider-rpaas
+
+go 1.15
+
+require (
+	github.com/hashicorp/hcl/v2 v2.9.0 //indirect
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.5.0
+	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.7.0
+	github.com/tsuru/rpaas-operator v0.0.0-20210322200246-fef6d3a140b6
+	istio.io/pkg v0.0.0-20210322140956-5892a3b28d3e
+)
