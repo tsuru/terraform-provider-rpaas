@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sirupsen/logrus"
-	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
+	"github.com/tsuru/tsuru/cmd"
 	"istio.io/pkg/log"
 )
 
@@ -42,8 +42,9 @@ func Provider() *schema.Provider {
 }
 
 type rpaasProvider struct {
-	RPaaSClient *rpaas_client.Client
-	Log         *logrus.Logger
+	Host  string
+	Token string
+	Log   *logrus.Logger
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
@@ -56,26 +57,37 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 	}
 	// userAgent := fmt.Sprintf("HashiCorp/1.0 Terraform/%s", terraformVersion)
 
-	// cfg := &tsuru.Configuration{
-	// 	DefaultHeader: map[string]string{},
-	// 	UserAgent:     userAgent,
-	// }
-
-	// host := d.Get("host").(string)
-	// if host != "" {
-	// 	cfg.BasePath = host
-	// }
-	// token := d.Get("token").(string)
-	// if token != "" {
-	// 	cfg.DefaultHeader["Authorization"] = token
-	// }
-
-	// client, err := client.ClientFromEnvironment(cfg)
-	// if err != nil {
-	// 	return nil, diag.FromErr(err)
-	// }
-
-	return &rpaasProvider{
+	p := &rpaasProvider{
 		Log: logger,
-	}, nil
+	}
+
+	host := d.Get("host").(string)
+	if host != "" {
+		p.Host = host
+	} else {
+		target, err := cmd.GetTarget()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		if target == "" {
+			return nil, diag.Errorf("Tsuru target is empty")
+		}
+		p.Host = target
+	}
+
+	token := d.Get("token").(string)
+	if token != "" {
+		p.Token = token
+	} else {
+		t, err := cmd.ReadToken()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		if t == "" {
+			return nil, diag.Errorf("Tsuru token is empty")
+		}
+		p.Token = t
+	}
+
+	return p, nil
 }

@@ -11,5 +11,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tsuru/go-tsuruclient v0.0.0-20210329160108-f9986d5c2452
 	github.com/tsuru/rpaas-operator v0.0.0-20210322200246-fef6d3a140b6
+	github.com/tsuru/tsuru v0.0.0-20180820205921-0e7f7f02eac5
 	istio.io/pkg v0.0.0-20210322140956-5892a3b28d3e
 )

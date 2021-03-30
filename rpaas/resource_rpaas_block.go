@@ -64,12 +64,14 @@ func resourceRpaasBlock() *schema.Resource {
 }
 
 func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
 	content := d.Get("content").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -92,11 +94,13 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -121,11 +125,13 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {

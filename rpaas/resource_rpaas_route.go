@@ -66,6 +66,8 @@ func resourceRpaasRoute() *schema.Resource {
 }
 
 func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	path := d.Get("path").(string)
@@ -74,7 +76,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 		httpsOnly = v.(bool)
 	}
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -105,11 +107,13 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	path := d.Get("path").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -140,11 +144,13 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 }
 
 func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	path := d.Get("path").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {

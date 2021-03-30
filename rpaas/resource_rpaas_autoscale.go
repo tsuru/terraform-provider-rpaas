@@ -58,10 +58,12 @@ func resourceRpaasAutoscale() *schema.Resource {
 }
 
 func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -94,10 +96,12 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -125,10 +129,12 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 }
 
 func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
@@ -159,10 +165,12 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions("", "", serviceName, rpaas_client.ClientOptions{
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
 		Timeout: 10 * time.Second,
 	})
 	if err != nil {
