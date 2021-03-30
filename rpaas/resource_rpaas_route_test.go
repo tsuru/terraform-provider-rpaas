@@ -12,39 +12,36 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
-func TestAccRpaasAutoscale_basic(t *testing.T) {
+func TestAccRpaasRoute_basic(t *testing.T) {
 	fakeServer := echo.New()
-	getCount := 0
-	fakeServer.POST("/services/rpaasv2-be/proxy/be_autoscale", func(c echo.Context) error {
+	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
 		p := struct {
-			Max, Min, Cpu, Memory int
+			Path, Destination, HTTPS_only, Content string
 		}{}
 		err := c.Bind(&p)
 		require.NoError(t, err)
-		assert.Equal(t, 10, p.Min)
-		assert.Equal(t, 50, p.Max)
-		assert.Equal(t, 60, p.Cpu)
+		assert.Equal(t, "/", p.Path)
+		assert.Equal(t, "false", p.HTTPS_only)
+		assert.Equal(t, "	# nginx config\n", p.Content)
 		return c.JSON(http.StatusCreated, nil)
 	})
-	fakeServer.GET("/services/rpaasv2-be/proxy/be_autoscale", func(c echo.Context) error {
-		if getCount == 0 {
-			getCount++
-			return c.JSON(http.StatusNotFound, nil)
-		}
-		return c.JSON(http.StatusOK, &types.Autoscale{
-			MinReplicas: pointerToInt32(10),
-			MaxReplicas: pointerToInt32(50),
-			CPU:         pointerToInt32(60),
+	fakeServer.GET("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, struct {
+			Routes []types.Route `json:"routes"`
+		}{
+			Routes: []types.Route{
+				{Path: "/", Content: "	# nginx config\n"},
+			},
 		})
 	})
-	fakeServer.DELETE("/services/rpaasv2-be/proxy/be_autoscale", func(c echo.Context) error {
+	fakeServer.DELETE("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	})
 	fakeServer.HTTPErrorHandler = func(err error, c echo.Context) {
@@ -54,7 +51,7 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 	os.Setenv("TSURU_TARGET", server.URL)
 	os.Setenv("TSURU_TOKEN", "asdf")
 
-	resourceName := "rpaas_autoscale.be_autoscale"
+	resourceName := "rpaas_route.custom_route"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		IDRefreshName:     resourceName,
@@ -62,29 +59,29 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasRouterConfig_basic(server.URL, "be_autoscale"),
+				Config: testAccRpaasRouteConfig_basic(server.URL, "my_rpaas"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "instance", "be_autoscale"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my_rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "path", "/"),
 				),
 			},
 		},
 	})
 }
 
-func pointerToInt32(v int32) *int32 { return &v }
-
-func testAccRpaasRouterConfig_basic(fakeServer, name string) string {
+func testAccRpaasRouteConfig_basic(fakeServer, name string) string {
 	return fmt.Sprintf(`
-resource "rpaas_autoscale" "be_autoscale" {
+resource "rpaas_route" "custom_route" {
 	instance = "%s"
 	service_name = "rpaasv2-be"
 
-	min_replicas = 10
-	max_replicas = 50
+	path = "/"
 
-	target_cpu_utilization_percentage = 60
+	content = <<EOF
+	# nginx config
+	EOF
 }
 `, name)
 }
