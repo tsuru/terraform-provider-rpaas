@@ -15,11 +15,10 @@ resource "rpaas_autoscale" "be-autoscale" {
     service_name = tsuru_service_instance.my-rpaas.service_name
     instance = tsuru_service_instance.my-rpaas.name
 
-    minimum_replicas = 10
-    maximum_replicas = 40
+    min_replicas = 10
+    max_replicas = 40
 
-    cpu_threshold = 60
-    memory_threshold = "128Mb"
+    target_cpu_utilization_percentage = 60
 }
 
 resource "rpaas_certificate" "be-custom-certificate" {

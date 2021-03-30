@@ -29,16 +29,17 @@ func Provider() *schema.Provider {
 				Optional:    true,
 			},
 		},
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"rpaas_autoscale": resourceRpaasAutoscale(),
+		},
 	}
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		return providerConfigure(ctx, d, p.TerraformVersion)
 	}
-
 	return p
 }
 
-type tsuruProvider struct {
+type rpaasProvider struct {
 	RPaaSClient *rpaas_client.Client
 	Log         *logrus.Logger
 }
@@ -72,7 +73,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 	// 	return nil, diag.FromErr(err)
 	// }
 
-	return &tsuruProvider{
+	return &rpaasProvider{
 		Log: logger,
 	}, nil
 }
