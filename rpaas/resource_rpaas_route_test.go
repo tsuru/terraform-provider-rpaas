@@ -28,7 +28,7 @@ func TestAccRpaasRoute_basic(t *testing.T) {
 		err := c.Bind(&p)
 		require.NoError(t, err)
 		assert.Equal(t, "/", p.Path)
-		assert.Equal(t, "false", p.HTTPS_only)
+		assert.Equal(t, "", p.HTTPS_only)
 		assert.Equal(t, "	# nginx config\n", p.Content)
 		return c.JSON(http.StatusCreated, nil)
 	})

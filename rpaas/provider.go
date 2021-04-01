@@ -7,12 +7,15 @@ package rpaas
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sirupsen/logrus"
 	"github.com/tsuru/tsuru/cmd"
 	"istio.io/pkg/log"
+
+	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 )
 
 func Provider() *schema.Provider {
@@ -42,9 +45,8 @@ func Provider() *schema.Provider {
 }
 
 type rpaasProvider struct {
-	Host  string
-	Token string
-	Log   *logrus.Logger
+	RpaasClient rpaas_client.Client
+	Log         *logrus.Logger
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVersion string) (interface{}, diag.Diagnostics) {
@@ -55,16 +57,9 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 	} else {
 		log.Info("Failed to log to file, using default stderr")
 	}
-	// userAgent := fmt.Sprintf("HashiCorp/1.0 Terraform/%s", terraformVersion)
-
-	p := &rpaasProvider{
-		Log: logger,
-	}
 
 	host := d.Get("host").(string)
-	if host != "" {
-		p.Host = host
-	} else {
+	if host == "" {
 		target, err := cmd.GetTarget()
 		if err != nil {
 			return nil, diag.FromErr(err)
@@ -72,13 +67,12 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 		if target == "" {
 			return nil, diag.Errorf("Tsuru target is empty")
 		}
-		p.Host = target
+	} else {
+		os.Setenv("TSURU_TARGET", host)
 	}
 
 	token := d.Get("token").(string)
-	if token != "" {
-		p.Token = token
-	} else {
+	if token == "" {
 		t, err := cmd.ReadToken()
 		if err != nil {
 			return nil, diag.FromErr(err)
@@ -86,7 +80,24 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 		if t == "" {
 			return nil, diag.Errorf("Tsuru token is empty")
 		}
-		p.Token = t
+		token = t
+	}
+
+	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(
+		host,
+		token,
+		"unset",
+		rpaas_client.ClientOptions{
+			Timeout: 10 * time.Second,
+		},
+	)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	p := &rpaasProvider{
+		Log:         logger,
+		RpaasClient: cli,
 	}
 
 	return p, nil

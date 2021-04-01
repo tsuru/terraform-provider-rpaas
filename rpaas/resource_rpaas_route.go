@@ -7,7 +7,6 @@ package rpaas
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -75,13 +74,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 	if v, ok := d.GetOk("force_https"); ok {
 		httpsOnly = v.(bool)
 	}
-
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
+	provider.RpaasClient.SetService(serviceName)
 
 	args := rpaas_client.UpdateRouteArgs{
 		Instance:  instance,
@@ -97,7 +90,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 		args.Destination = destination.(string)
 	}
 
-	err = cli.UpdateRoute(ctx, args)
+	err := provider.RpaasClient.UpdateRoute(ctx, args)
 	if err != nil {
 		return diag.Errorf("Unable to create/update route %s for instance %s: %v", path, instance, err)
 	}
@@ -112,15 +105,9 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	path := d.Get("path").(string)
+	provider.RpaasClient.SetService(serviceName)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
-
-	routes, err := cli.ListRoutes(ctx, rpaas_client.ListRoutesArgs{Instance: instance})
+	routes, err := provider.RpaasClient.ListRoutes(ctx, rpaas_client.ListRoutesArgs{Instance: instance})
 	if err != nil {
 		return diag.Errorf("Unable to get block %s for instance %s: %v", path, instance, err)
 	}
@@ -149,15 +136,9 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	path := d.Get("path").(string)
+	provider.RpaasClient.SetService(serviceName)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
-
-	err = cli.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
+	err := provider.RpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
 		Instance: instance,
 		Path:     path,
 	})

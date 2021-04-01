@@ -24,14 +24,15 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 	getCount := 0
 	fakeServer.POST("/services/rpaasv2-be/proxy/be_autoscale", func(c echo.Context) error {
 		p := struct {
-			Max, Min, Cpu, Memory int
+			Min, Max, Cpu, Memory *int32
 		}{}
 		err := c.Bind(&p)
 		require.NoError(t, err)
-		assert.Equal(t, 10, p.Min)
-		assert.Equal(t, 50, p.Max)
-		assert.Equal(t, 60, p.Cpu)
-		return c.JSON(http.StatusCreated, nil)
+		assert.Equal(t, int32(10), *p.Min)
+		assert.Equal(t, int32(50), *p.Max)
+		assert.Equal(t, int32(60), *p.Cpu)
+		assert.Nil(t, p.Memory)
+		return c.JSON(http.StatusOK, nil)
 	})
 	fakeServer.GET("/services/rpaasv2-be/proxy/be_autoscale", func(c echo.Context) error {
 		if getCount == 0 {
@@ -72,8 +73,6 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 		},
 	})
 }
-
-func pointerToInt32(v int32) *int32 { return &v }
 
 func testAccRpaasRouterConfig_basic(fakeServer, name string) string {
 	return fmt.Sprintf(`

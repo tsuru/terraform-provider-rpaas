@@ -7,7 +7,6 @@ package rpaas
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -70,13 +69,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
 	content := d.Get("content").(string)
-
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
+	provider.RpaasClient.SetService(serviceName)
 
 	args := rpaas_client.UpdateBlockArgs{
 		Instance: instance,
@@ -84,7 +77,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 		Content:  content,
 	}
 
-	err = cli.UpdateBlock(ctx, args)
+	err := provider.RpaasClient.UpdateBlock(ctx, args)
 	if err != nil {
 		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, err)
 	}
@@ -99,15 +92,9 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
+	provider.RpaasClient.SetService(serviceName)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
-
-	blocks, err := cli.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
+	blocks, err := provider.RpaasClient.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
 	if err != nil {
 		return diag.Errorf("Unable to get block %s for instance %s: %v", blockName, instance, err)
 	}
@@ -130,15 +117,9 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
+	provider.RpaasClient.SetService(serviceName)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
-
-	err = cli.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
+	err := provider.RpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
 		Instance: instance,
 		Name:     blockName,
 	})

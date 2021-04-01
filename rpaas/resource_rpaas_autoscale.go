@@ -7,7 +7,6 @@ package rpaas
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -63,30 +62,25 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
+	provider.RpaasClient.SetService(serviceName)
 
 	args := rpaas_client.UpdateAutoscaleArgs{
 		Instance: instance,
 	}
 
 	if v, ok := d.GetOk("min_replicas"); ok {
-		args.MinReplicas = int32(v.(int))
+		args.MinReplicas = pointerToInt32(int32(v.(int)))
 	}
 
 	if v, ok := d.GetOk("max_replicas"); ok {
-		args.MaxReplicas = int32(v.(int))
+		args.MaxReplicas = pointerToInt32(int32(v.(int)))
 	}
 
 	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
-		args.CPU = int32(v.(int))
+		args.CPU = pointerToInt32(int32(v.(int)))
 	}
 
-	err = cli.UpdateAutoscale(ctx, args)
+	err := provider.RpaasClient.UpdateAutoscale(ctx, args)
 	if err != nil {
 		return diag.Errorf("Unable to create autoscale for instance %s: %v", instance, err)
 	}
@@ -101,14 +95,9 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
+	provider.RpaasClient.SetService(serviceName)
 
-	autoscale, err := cli.GetAutoscale(ctx, rpaas_client.GetAutoscaleArgs{Instance: instance})
+	autoscale, err := provider.RpaasClient.GetAutoscale(ctx, rpaas_client.GetAutoscaleArgs{Instance: instance})
 	if err != nil {
 		return diag.Errorf("Unable to get autoscale for %s: %v", instance, err)
 	}
@@ -133,31 +122,25 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
-
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
+	provider.RpaasClient.SetService(serviceName)
 
 	args := rpaas_client.UpdateAutoscaleArgs{
 		Instance: instance,
 	}
 
 	if v, ok := d.GetOk("min_replicas"); ok {
-		args.MinReplicas = int32(v.(int))
+		args.MinReplicas = pointerToInt32(int32(v.(int)))
 	}
 
 	if v, ok := d.GetOk("max_replicas"); ok {
-		args.MaxReplicas = int32(v.(int))
+		args.MaxReplicas = pointerToInt32(int32(v.(int)))
 	}
 
 	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
-		args.CPU = int32(v.(int))
+		args.CPU = pointerToInt32(int32(v.(int)))
 	}
 
-	err = cli.UpdateAutoscale(ctx, args)
+	err := provider.RpaasClient.UpdateAutoscale(ctx, args)
 	if err != nil {
 		return diag.Errorf("Unable to create autoscale for instance %s: %v", instance, err)
 	}
@@ -169,20 +152,17 @@ func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, m
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
+	provider.RpaasClient.SetService(serviceName)
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(provider.Host, provider.Token, serviceName, rpaas_client.ClientOptions{
-		Timeout: 10 * time.Second,
-	})
-	if err != nil {
-		return diag.Errorf("Unable to create client: %v", err)
-	}
-
-	err = cli.RemoveAutoscale(ctx, rpaas_client.RemoveAutoscaleArgs{
+	err := provider.RpaasClient.RemoveAutoscale(ctx, rpaas_client.RemoveAutoscaleArgs{
 		Instance: instance,
 	})
-
 	if err != nil {
 		return diag.Errorf("Unable to remove autoscale for instance %s: %v", instance, err)
 	}
 	return nil
+}
+
+func pointerToInt32(x int32) *int32 {
+	return &x
 }
