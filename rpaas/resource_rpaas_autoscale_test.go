@@ -23,14 +23,12 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 	fakeServer := echo.New()
 	getCount := 0
 	fakeServer.POST("/services/rpaasv2-be/proxy/be_autoscale", func(c echo.Context) error {
-		p := struct {
-			Min, Max, Cpu, Memory *int32
-		}{}
+		p := types.Autoscale{}
 		err := c.Bind(&p)
 		require.NoError(t, err)
-		assert.Equal(t, int32(10), *p.Min)
-		assert.Equal(t, int32(50), *p.Max)
-		assert.Equal(t, int32(60), *p.Cpu)
+		assert.Equal(t, pointerToInt32(10), p.MinReplicas)
+		assert.Equal(t, pointerToInt32(50), p.MaxReplicas)
+		assert.Equal(t, pointerToInt32(60), p.CPU)
 		assert.Nil(t, p.Memory)
 		return c.JSON(http.StatusOK, nil)
 	})
