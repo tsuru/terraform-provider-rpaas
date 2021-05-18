@@ -31,6 +31,12 @@ func Provider() *schema.Provider {
 				Description: "Token to authenticate on tsuru API (optional)",
 				Optional:    true,
 			},
+			"skip_cert_verification": {
+				Type:        schema.TypeBool,
+				Description: "Disable certificate verification",
+				Default:     false,
+				Optional:    true,
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"rpaas_autoscale": resourceRpaasAutoscale(),
@@ -88,7 +94,8 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 		token,
 		"unset",
 		rpaas_client.ClientOptions{
-			Timeout: 10 * time.Second,
+			Timeout:            10 * time.Second,
+			InsecureSkipVerify: d.Get("skip_cert_verification").(bool),
 		},
 	)
 	if err != nil {

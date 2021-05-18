@@ -69,7 +69,10 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
 	content := d.Get("content").(string)
-	provider.RpaasClient.SetService(serviceName)
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
 
 	args := rpaas_client.UpdateBlockArgs{
 		Instance: instance,
@@ -77,7 +80,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 		Content:  content,
 	}
 
-	err := provider.RpaasClient.UpdateBlock(ctx, args)
+	err = rpaasClient.UpdateBlock(ctx, args)
 	if err != nil {
 		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, err)
 	}
@@ -92,9 +95,12 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
-	provider.RpaasClient.SetService(serviceName)
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
 
-	blocks, err := provider.RpaasClient.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
+	blocks, err := rpaasClient.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
 	if err != nil {
 		return diag.Errorf("Unable to get block %s for instance %s: %v", blockName, instance, err)
 	}
@@ -117,9 +123,12 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
-	provider.RpaasClient.SetService(serviceName)
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
 
-	err := provider.RpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
+	err = rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
 		Instance: instance,
 		Name:     blockName,
 	})

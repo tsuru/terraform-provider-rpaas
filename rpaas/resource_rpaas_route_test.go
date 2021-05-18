@@ -16,19 +16,18 @@ import (
 	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func TestAccRpaasRoute_basic(t *testing.T) {
 	fakeServer := echo.New()
 	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		p := struct {
-			Path, Destination, HTTPS_only, Content string
-		}{}
+		p := rpaas_client.UpdateRouteArgs{}
 		err := c.Bind(&p)
 		require.NoError(t, err)
 		assert.Equal(t, "/", p.Path)
-		assert.Equal(t, "", p.HTTPS_only)
+		assert.False(t, p.HTTPSOnly)
 		assert.Equal(t, "	# nginx config\n", p.Content)
 		return c.JSON(http.StatusCreated, nil)
 	})
