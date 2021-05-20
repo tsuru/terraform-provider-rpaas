@@ -7,14 +7,17 @@ package rpaas
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sirupsen/logrus"
 	"github.com/tsuru/tsuru/cmd"
 	"istio.io/pkg/log"
 
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 )
 
@@ -108,4 +111,22 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 	}
 
 	return p, nil
+}
+
+func rpaasRetry(ctx context.Context, d *schema.ResourceData, retryFunc func() error) error {
+	return resource.RetryContext(ctx, d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		err := retryFunc()
+
+		if err == nil {
+			return nil
+		}
+
+		if errUnexpected, ok := err.(*client.ErrUnexpectedStatusCode); ok {
+			if strings.Contains(errUnexpected.Body, "event locked") {
+				return resource.RetryableError(err)
+			}
+		}
+
+		return resource.NonRetryableError(err)
+	})
 }

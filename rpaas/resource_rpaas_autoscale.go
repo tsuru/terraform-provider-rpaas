@@ -83,7 +83,10 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 		args.CPU = pointerToInt32(int32(v.(int)))
 	}
 
-	err = rpaasClient.UpdateAutoscale(ctx, args)
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.UpdateAutoscale(ctx, args)
+	})
+
 	if err != nil {
 		return diag.Errorf("Unable to create autoscale for instance %s: %v", instance, err)
 	}
@@ -148,9 +151,11 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 		args.CPU = pointerToInt32(int32(v.(int)))
 	}
 
-	err = rpaasClient.UpdateAutoscale(ctx, args)
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.UpdateAutoscale(ctx, args)
+	})
 	if err != nil {
-		return diag.Errorf("Unable to create autoscale for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to update autoscale for instance %s: %v", instance, err)
 	}
 	return nil
 }
@@ -165,9 +170,12 @@ func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	err = rpaasClient.RemoveAutoscale(ctx, rpaas_client.RemoveAutoscaleArgs{
-		Instance: instance,
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.RemoveAutoscale(ctx, rpaas_client.RemoveAutoscaleArgs{
+			Instance: instance,
+		})
 	})
+
 	if err != nil {
 		return diag.Errorf("Unable to remove autoscale for instance %s: %v", instance, err)
 	}

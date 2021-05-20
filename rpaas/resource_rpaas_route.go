@@ -92,7 +92,10 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 		args.Destination = destination.(string)
 	}
 
-	err = rpaasClient.UpdateRoute(ctx, args)
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.UpdateRoute(ctx, args)
+	})
+
 	if err != nil {
 		return diag.Errorf("Unable to create/update route %s for instance %s: %v", path, instance, err)
 	}
@@ -146,9 +149,11 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	err = rpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
-		Instance: instance,
-		Path:     path,
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
+			Instance: instance,
+			Path:     path,
+		})
 	})
 
 	if err != nil {

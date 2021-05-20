@@ -80,7 +80,10 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 		Content:  content,
 	}
 
-	err = rpaasClient.UpdateBlock(ctx, args)
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.UpdateBlock(ctx, args)
+	})
+
 	if err != nil {
 		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, err)
 	}
@@ -128,9 +131,11 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	err = rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
-		Instance: instance,
-		Name:     blockName,
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
+			Instance: instance,
+			Name:     blockName,
+		})
 	})
 
 	if err != nil {
