@@ -24,7 +24,6 @@ require (
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/sajari/fuzzy v1.0.0 // indirect
@@ -32,7 +31,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tsuru/commandmocker v0.0.0-20160909010208-e1d28f4f616a // indirect
 	github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa // indirect
-	github.com/tsuru/rpaas-operator v0.12.7-0.20210518132148-7034ab22f6f4
+	github.com/tsuru/rpaas-operator v0.14.2-0.20210811174732-5ec7194ca91b
 	github.com/tsuru/tablecli v0.0.0-20180215113938-82de88f75181 // indirect
 	github.com/tsuru/tsuru v0.0.0-20180820205921-0e7f7f02eac5
 	github.com/ulikunitz/xz v0.5.10 // indirect
@@ -44,6 +43,5 @@ require (
 	golang.org/x/sys v0.0.0-20210818153620-00dd8d7831e7 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20210816143620-e15ff196659d // indirect
-	gotest.tools/v3 v3.0.3 // indirect
 	istio.io/pkg v0.0.0-20210322140956-5892a3b28d3e
 )

@@ -43,10 +43,11 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"rpaas_autoscale":   resourceRpaasAutoscale(),
-			"rpaas_block":       resourceRpaasBlock(),
-			"rpaas_route":       resourceRpaasRoute(),
-			"rpaas_certificate": resourceRpaasCertificate(),
+			"rpaas_autoscale":    resourceRpaasAutoscale(),
+			"rpaas_block":        resourceRpaasBlock(),
+			"rpaas_route":        resourceRpaasRoute(),
+			"rpaas_certificate":  resourceRpaasCertificate(),
+			"rpaas_cert_manager": resourceRpaasCertManager(),
 		},
 	}
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
