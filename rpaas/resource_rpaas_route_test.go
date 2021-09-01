@@ -77,6 +77,7 @@ resource "rpaas_route" "custom_route" {
 	service_name = "rpaasv2-be"
 
 	path = "/"
+	https_only = true
 
 	content = <<EOF
 	# nginx config

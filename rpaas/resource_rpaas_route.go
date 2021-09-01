@@ -71,7 +71,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 	serviceName := d.Get("service_name").(string)
 	path := d.Get("path").(string)
 	httpsOnly := false
-	if v, ok := d.GetOk("force_https"); ok {
+	if v, ok := d.GetOk("https_only"); ok {
 		httpsOnly = v.(bool)
 	}
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
