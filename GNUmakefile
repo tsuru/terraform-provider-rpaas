@@ -34,5 +34,8 @@ uninstall:
 test:
 	TF_ACC=1 TF_ACC_TERRAFORM_VERSION=1.0.3 go test ./... -v
 
+debug_test:
+	TF_LOG=debug make test
+
 generate-docs:
 	go generate

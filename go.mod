@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.93.3 // indirect
 	cloud.google.com/go/storage v1.16.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
+	github.com/ajg/form v1.5.1 // indirect
 	github.com/aws/aws-sdk-go v1.40.24 // indirect
 	github.com/docker/docker v20.10.2+incompatible // indirect
 	github.com/fatih/color v1.12.0 // indirect
