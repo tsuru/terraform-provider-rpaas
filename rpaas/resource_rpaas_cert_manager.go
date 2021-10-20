@@ -62,6 +62,7 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
+	issuer := d.Get("issuer").(string)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -71,7 +72,7 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 	args := rpaas_client.UpdateCertManagerArgs{
 		Instance: instance,
 		CertManager: types.CertManager{
-			Issuer:   d.Get("issuer").(string),
+			Issuer:   issuer,
 			DNSNames: parseDNSNames(d.Get("dns_names")),
 		},
 	}
@@ -85,7 +86,7 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("Unable to create/update cert-manager, issuer %s for instance %s: %v", args.CertManager.Issuer, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s %s", serviceName, instance))
+	d.SetId(fmt.Sprintf("%s %s %s", serviceName, instance, issuer))
 	return resourceRpaasCertManagerRead(ctx, d, meta)
 }
 
@@ -107,8 +108,10 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to read rpaas instance %s: %v", instance, err)
 	}
 
+	certificateName := "cert-manager-" + d.Get("issuer").(string)
+
 	for _, certificate := range info.Certificates {
-		if certificate.Name == "cert-manager" {
+		if certificate.Name == "cert-manager" || certificate.Name == certificateName {
 			return nil
 		}
 	}
