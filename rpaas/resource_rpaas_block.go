@@ -109,13 +109,14 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	for _, b := range blocks {
-		if b.Name != blockName {
-			continue
+		if b.Name == blockName {
+			d.Set("name", b.Name)
+			d.Set("content", b.Content)
+			return nil
 		}
-		d.Set("name", b.Name)
-		d.Set("content", b.Content)
-		return nil
 	}
+
+	d.SetId("")
 
 	return nil
 }
