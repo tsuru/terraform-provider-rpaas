@@ -121,12 +121,8 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 		if b.Path == path {
 			d.Set("path", b.Path)
 			d.Set("https_only", b.HTTPSOnly)
-			if b.Destination != "" {
-				d.Set("destination", b.Destination)
-			}
-			if b.Content != "" {
-				d.Set("content", b.Content)
-			}
+			d.Set("destination", b.Destination)
+			d.Set("content", b.Content)
 			return nil
 		}
 	}

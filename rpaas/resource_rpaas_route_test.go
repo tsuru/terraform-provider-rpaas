@@ -33,10 +33,10 @@ func TestAccRpaasRoute_basic(t *testing.T) {
 	})
 	fakeServer.GET("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
-			Routes []types.Route `json:"routes"`
+			Routes []types.Route `json:"paths"`
 		}{
 			Routes: []types.Route{
-				{Path: "/", Content: "	# nginx config\n"},
+				{Path: "/", Content: "	# nginx config\n", HTTPSOnly: true},
 			},
 		})
 	})
