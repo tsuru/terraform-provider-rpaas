@@ -118,20 +118,20 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	for _, b := range routes {
-		if b.Path != path {
-			continue
+		if b.Path == path {
+			d.Set("path", b.Path)
+			d.Set("https_only", b.HTTPSOnly)
+			if b.Destination != "" {
+				d.Set("destination", b.Destination)
+			}
+			if b.Content != "" {
+				d.Set("content", b.Content)
+			}
+			return nil
 		}
-		d.Set("path", b.Path)
-		d.Set("https_only", b.HTTPSOnly)
-		if b.Destination != "" {
-			d.Set("destination", b.Destination)
-		}
-		if b.Content != "" {
-			d.Set("content", b.Content)
-		}
-		return nil
 	}
 
+	d.SetId("")
 	return nil
 }
 
