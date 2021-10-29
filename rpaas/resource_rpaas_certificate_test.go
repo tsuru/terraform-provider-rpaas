@@ -32,7 +32,7 @@ func TestAccRpaasCertificate_basic(t *testing.T) {
 		p := rpaas_client.UpdateCertificateArgs{}
 		err = c.Bind(&p)
 		require.NoError(t, err)
-		assert.Equal(t, "example.org", p.Name)
+		assert.Equal(t, "example.org", c.FormValue("name"))
 		assert.Equal(t, "	# the certificate\n", string(cert))
 		assert.Equal(t, "	# the key\n", string(key))
 		return c.JSON(http.StatusOK, nil)

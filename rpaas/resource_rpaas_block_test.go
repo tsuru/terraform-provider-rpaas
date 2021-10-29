@@ -22,12 +22,10 @@ import (
 func TestAccRpaasBlock_basic(t *testing.T) {
 	fakeServer := echo.New()
 	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		p := struct {
-			Block_Name, Content string
-		}{}
+		var p types.Block
 		err := c.Bind(&p)
 		require.NoError(t, err)
-		assert.Equal(t, "server", p.Block_Name)
+		assert.Equal(t, "server", p.Name)
 		assert.Equal(t, "	# nginx config\n", p.Content)
 		return c.JSON(http.StatusOK, nil)
 	})

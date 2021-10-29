@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -43,15 +44,16 @@ func resourceRpaasCertManager() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Issuer of certificate",
+				Description: "Certificate issuer name",
 			},
 			"dns_names": {
-				Type:     schema.TypeList,
-				Required: true,
+				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: "DNS Names content",
+				Required:    true,
+				MinItems:    1,
+				Description: "A list of DNS names to be associated with the certificate in Subject Alternative Names extension",
 			},
 		},
 	}
@@ -60,63 +62,59 @@ func resourceRpaasCertManager() *schema.Resource {
 func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
-	issuer := d.Get("issuer").(string)
-
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	args := rpaas_client.UpdateCertManagerArgs{
-		Instance: instance,
-		CertManager: types.CertManager{
-			Issuer:   issuer,
-			DNSNames: parseDNSNames(d.Get("dns_names")),
-		},
-	}
-	log.Printf("[DEBUG] creating certificate for instance %s, issuer name %s", args.Instance, args.CertManager.Issuer)
-
+	instance, issuer, dnsNames := d.Get("instance").(string), d.Get("issuer").(string), asSliceOfStrings(d.Get("dns_names"))
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateCertManager(ctx, args)
-	})
+		log.Printf("[DEBUG] Creating Cert Manager certificate request: {service: %s, instance: %s, issuer: %v, DNSes: %s}", serviceName, instance, issuer, strings.Join(dnsNames, ", "))
 
+		return rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
+			Instance: instance,
+			CertManager: types.CertManager{
+				Issuer:   issuer,
+				DNSNames: dnsNames,
+			},
+		})
+	})
 	if err != nil {
-		return diag.Errorf("Unable to create/update cert-manager, issuer %s for instance %s: %v", args.CertManager.Issuer, instance, err)
+		return diag.Errorf("could not create/update Cert Manager request: %v", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s %s %s", serviceName, instance, issuer))
-	return resourceRpaasCertManagerRead(ctx, d, meta)
+	id := fmt.Sprintf("%s %s %s", serviceName, instance, issuer)
+	log.Printf("[DEBUG] Cert Manager certificate request created/updated successfully, stored in ID: %s", id)
+	d.SetId(id)
+
+	return nil
 }
 
 func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	info, err := rpaasClient.Info(ctx, rpaas_client.InfoArgs{
-		Instance: instance,
-	})
-
+	instance := d.Get("instance").(string)
+	requests, err := rpaasClient.ListCertManagerRequests(ctx, instance)
 	if err != nil {
-		return diag.Errorf("Unable to read rpaas instance %s: %v", instance, err)
+		return diag.Errorf("could not list Cert Manager requests: %v", err)
 	}
 
-	certificateName := "cert-manager-" + d.Get("issuer").(string)
-
-	for _, certificate := range info.Certificates {
-		if certificate.Name == "cert-manager" || certificate.Name == certificateName {
-			return nil
-		}
+	issuer := d.Get("issuer").(string)
+	request, found := findCertManagerRequestByIssuer(requests, issuer)
+	if !found {
+		log.Printf("[DEBUG] Removing resource (ID: %s) from state as it's not found on RPaaS", d.Id())
+		d.SetId("")
+		return nil
 	}
 
-	d.SetId("")
+	d.Set("dns_names", request.DNSNames)
 
 	return nil
 }
@@ -124,26 +122,36 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 func resourceRpaasCertManagerDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
+	instance, issuer := d.Get("instance").(string), d.Get("issuer").(string)
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.DeleteCertManager(ctx, instance)
+		log.Printf("[DEBUG] Removing Cert Manager certificate request: {Service: %s, Instance: %s, Issuer: %s}", serviceName, instance, issuer)
+		return rpaasClient.DeleteCertManager(ctx, instance, issuer)
 	})
-
 	if err != nil {
-		return diag.Errorf("Unable to remove cert-manager for instance %s: %v", instance, err)
+		return diag.Errorf("cannot remove Cert Manager request: %v", err)
 	}
+
 	return nil
 }
 
-func parseDNSNames(data interface{}) []string {
-	values := []string{}
+func findCertManagerRequestByIssuer(reqs []types.CertManager, issuer string) (*types.CertManager, bool) {
+	for _, r := range reqs {
+		if r.Issuer == issuer {
+			return &r, true
+		}
+	}
 
+	return nil, false
+}
+
+func asSliceOfStrings(data interface{}) []string {
+	var values []string
 	for _, item := range data.([]interface{}) {
 		values = append(values, item.(string))
 	}
