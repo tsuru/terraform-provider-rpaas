@@ -2,8 +2,8 @@ HOSTNAME=registry.terraform.io
 NAMESPACE=tsuru
 NAME=rpaas
 BINARY=terraform-provider-${NAME}
-VERSION=0.0.4
-OS_ARCH=darwin_amd64
+VERSION=$(shell git describe --tags $(git rev-list --tags --max-count=1) | tr -d v)
+OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
 
 default: install
 
