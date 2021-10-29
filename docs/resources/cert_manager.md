@@ -17,9 +17,9 @@ description: |-
 
 ### Required
 
-- **dns_names** (List of String) DNS Names content
+- **dns_names** (List of String) A list of DNS names to be associated with the certificate in Subject Alternative Names extension
 - **instance** (String) RPaaS Instance Name
-- **issuer** (String) Issuer of certificate
+- **issuer** (String) Certificate issuer name
 - **service_name** (String) RPaaS Service Name
 
 ### Optional

@@ -8,7 +8,7 @@ import (
 	"github.com/tsuru/terraform-provider-rpaas/rpaas"
 )
 
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate tfplugindocs
 
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
