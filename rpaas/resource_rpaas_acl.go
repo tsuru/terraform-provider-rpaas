@@ -41,7 +41,7 @@ func resourceRpaasACL() *schema.Resource {
 			},
 			"port": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				ForceNew:    true,
 				Description: "Number of port",
 			},
