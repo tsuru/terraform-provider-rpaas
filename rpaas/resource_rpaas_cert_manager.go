@@ -24,7 +24,20 @@ func resourceRpaasCertManager() *schema.Resource {
 		UpdateContext: resourceRpaasCertManagerUpsert,
 		DeleteContext: resourceRpaasCertManagerDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				values := strings.Split(d.Id(), " ")
+				if len(values) != 3 {
+					return []*schema.ResourceData{d}, fmt.Errorf("Wrong ID format. Must be: '<service_name> <instance> <issuer>'")
+				}
+
+				d.Set("service_name", values[0])
+				d.Set("instance", values[1])
+				d.Set("issuer", values[2])
+
+				log.Printf("[DEBUG] Importing Cert Manager: {service: %s, instance: %s, issuer: %v}", values[0], values[1], values[2])
+
+				return []*schema.ResourceData{d}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
