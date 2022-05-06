@@ -49,6 +49,7 @@ func Provider() *schema.Provider {
 			"rpaas_certificate":  resourceRpaasCertificate(),
 			"rpaas_cert_manager": resourceRpaasCertManager(),
 			"rpaas_acl":          resourceRpaasACL(),
+			"rpaas_file":         resourceRpaasFile(),
 		},
 	}
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
