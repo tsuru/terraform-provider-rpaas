@@ -1313,8 +1313,8 @@ github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa h1:JlLQP1xa13a994p/A
 github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa/go.mod h1:UibOSvkMFKRe/eiwktAPAvQG8L+p8nYsECJvu3Dgw7I=
 github.com/tsuru/nginx-operator v0.10.0 h1:Apdrj6kTvkBVn2p4pHSnngo5knqm6TfFwBzYDTo1QJk=
 github.com/tsuru/nginx-operator v0.10.0/go.mod h1:0nwFM/IZA55wz4/DxpgbjUROnYTEEG225V+6rZsZU5Q=
-github.com/tsuru/rpaas-operator v0.27.5 h1:YV2J52n3qJEg52TOIwL1cS38HkGYsGETmgqg81EcaIY=
-github.com/tsuru/rpaas-operator v0.27.5/go.mod h1:F/BYIwXe002hkpyR4yB2Piw7f9kxjtWy9SU9zFlwqV0=
+github.com/tsuru/rpaas-operator v0.27.6 h1:mCCxk+GmlcpnPvDlc1ppFoidUiGTaVBU0QrIXTMzwz0=
+github.com/tsuru/rpaas-operator v0.27.6/go.mod h1:F/BYIwXe002hkpyR4yB2Piw7f9kxjtWy9SU9zFlwqV0=
 github.com/tsuru/tablecli v0.0.0-20180215113938-82de88f75181 h1:R1SnLQm/RZp35wa9e9nXyxy4EkEgU2v0rP4DGadrJ0g=
 github.com/tsuru/tablecli v0.0.0-20180215113938-82de88f75181/go.mod h1:ztYpOhW+u1k21FEqp7nZNgpWbr0dUKok5lgGCZi+1AQ=
 github.com/tsuru/tsuru v0.0.0-20180820205921-0e7f7f02eac5 h1:DWs/guyBAFqPQrpJeCKY+avcVOt6h/8AGXCSBIQB3N8=

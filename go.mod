@@ -25,7 +25,7 @@ require (
 	github.com/tsuru/commandmocker v0.0.0-20160909010208-e1d28f4f616a // indirect
 	github.com/tsuru/config v0.0.0-20200717192526-2a9a0efe5f28 // indirect
 	github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa // indirect
-	github.com/tsuru/rpaas-operator v0.27.5
+	github.com/tsuru/rpaas-operator v0.27.6
 	github.com/tsuru/tablecli v0.0.0-20180215113938-82de88f75181 // indirect
 	github.com/tsuru/tsuru v0.0.0-20180820205921-0e7f7f02eac5
 	github.com/ulikunitz/xz v0.5.10 // indirect
