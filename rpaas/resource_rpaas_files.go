@@ -120,7 +120,7 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 		return nil
 	}
 	if err != nil {
-		return diag.Errorf("Error getting file %q, from %s/%s: %v", filename, serviceName, instance, err)
+		return diag.Errorf("Error getting file %q from %s/%s: %v", filename, serviceName, instance, err)
 	}
 
 	d.Set("service_name", serviceName)
@@ -161,6 +161,14 @@ func resourceRpaasFileDelete(ctx context.Context, d *schema.ResourceData, meta i
 func validateResourceRpaasFileName(v interface{}, p cty.Path) diag.Diagnostics {
 	value := v.(string)
 
+	if len(value) < 1 {
+		return diag.Diagnostics{{
+			Severity: diag.Error,
+			Summary:  "Invalid filename",
+			Detail:   "Filename cannot be empty string",
+		}}
+	}
+
 	re := regexp.MustCompile(`[^\w._-]`)
 	invalidFilename := re.MatchString(value)
 	if invalidFilename {
@@ -170,5 +178,6 @@ func validateResourceRpaasFileName(v interface{}, p cty.Path) diag.Diagnostics {
 			Detail:   fmt.Sprintf("%q contains invalid characters.", value),
 		}}
 	}
+
 	return nil
 }

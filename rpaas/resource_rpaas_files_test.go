@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -81,7 +82,6 @@ resource "rpaas_file" "custom_file" {
 		PreCheck:          func() { testAccPreCheck(t) },
 		IDRefreshName:     resourceName,
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
 				Config: terraformDeclaration,
@@ -106,6 +106,55 @@ resource "rpaas_file" "custom_file" {
 			},
 		},
 	})
+}
+
+func TestAccRpaasFile_FileNameValidation(t *testing.T) {
+	fakeServer := echo.New()
+	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
+		return c.JSON(http.StatusCreated, nil)
+	})
+
+	server := httptest.NewServer(fakeServer)
+	os.Setenv("TSURU_TARGET", server.URL)
+	os.Setenv("TSURU_TOKEN", "asdf")
+
+	terraformTestSteps := []resource.TestStep{}
+
+	reInvalidFilename := regexp.MustCompile("Error: Invalid filename")
+	for _, invalidFilename := range []string{
+		"arquivo com espaco.txt",
+		"çedilha",
+		"outros+caracteres.txt",
+		"inválido",
+		"*nao*",
+		"()",
+		"",
+	} {
+		terraformTestSteps = append(terraformTestSteps, resource.TestStep{
+			Config:      terraformConfigFileName(invalidFilename),
+			ExpectError: reInvalidFilename,
+		})
+	}
+
+	for _, validFilename := range []string{
+		"arquivoCamelCase.txt",
+		"pontos.pode.ser.txt....e.nao.e..muito...exigente....",
+		"sim_-.",
+	} {
+		terraformTestSteps = append(terraformTestSteps, resource.TestStep{
+			Config:             terraformConfigFileName(validFilename),
+			ExpectNonEmptyPlan: true,
+			PlanOnly:           true,
+		})
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		Steps:             terraformTestSteps,
+		CheckDestroy:      nil,
+	})
+
 }
 
 func parseFileMapFromContext(c echo.Context) (map[string]string, error) {
@@ -134,4 +183,15 @@ func parseFileMapFromContext(c echo.Context) (map[string]string, error) {
 		uploadedFiles[p.FileName()] = string(slurp)
 	}
 	return uploadedFiles, nil
+}
+
+func terraformConfigFileName(name string) string {
+	return fmt.Sprintf(`
+resource "rpaas_file" "custom_file" {
+	instance     = "my_rpaas"
+	service_name = "rpaasv2-be"
+	name         = "%s"
+	content      = "Some content"
+}
+`, name)
 }
