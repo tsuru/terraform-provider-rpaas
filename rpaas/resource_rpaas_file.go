@@ -6,6 +6,7 @@ package rpaas
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -20,9 +21,9 @@ import (
 
 func resourceRpaasFile() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasFileCreate,
+		CreateContext: resourceRpaasFileUpsert,
 		ReadContext:   resourceRpaasFileRead,
-		UpdateContext: resourceRpaasFileCreate,
+		UpdateContext: resourceRpaasFileUpsert,
 		DeleteContext: resourceRpaasFileDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -44,6 +45,7 @@ func resourceRpaasFile() *schema.Resource {
 			"name": {
 				Type:             schema.TypeString,
 				Required:         true,
+				ForceNew:         true,
 				Description:      "Name of a persistent file in the instance filesystem",
 				ValidateDiagFunc: validateResourceRpaasFileName,
 			},
@@ -56,7 +58,7 @@ func resourceRpaasFile() *schema.Resource {
 	}
 }
 
-func resourceRpaasFileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	serviceName := d.Get("service_name").(string)
@@ -81,13 +83,19 @@ func resourceRpaasFileCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.AddExtraFiles(ctx,
+		if d.IsNewResource() {
+			return rpaasClient.AddExtraFiles(ctx,
+				extraFileArgs,
+			)
+		}
+
+		return rpaasClient.UpdateExtraFiles(ctx,
 			extraFileArgs,
 		)
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create file %q for instance %s: %v", filename, instance, err)
+		return diag.Errorf("Unable to upsert file %q for instance %s: %v", filename, instance, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, filename))
@@ -97,13 +105,10 @@ func resourceRpaasFileCreate(ctx context.Context, d *schema.ResourceData, meta i
 func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	splitID := strings.Split(d.Id(), "/")
-	if len(splitID) != 3 {
-		return diag.Errorf("Resource ID could not be parsed. Format should be \"service/instance/file\"")
+	serviceName, instance, filename, err := parseRpaasFileID(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
-	serviceName := splitID[0]
-	instance := splitID[1]
-	filename := splitID[2]
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -180,4 +185,16 @@ func validateResourceRpaasFileName(v interface{}, p cty.Path) diag.Diagnostics {
 	}
 
 	return nil
+}
+
+func parseRpaasFileID(id string) (serviceName, instance, filename string, err error) {
+	splitID := strings.Split(id, "/")
+	if len(splitID) != 3 {
+		err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/file\"")
+		return
+	}
+	serviceName = splitID[0]
+	instance = splitID[1]
+	filename = splitID[2]
+	return
 }
