@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,45 @@ import (
 )
 
 func TestAccRpaasACL_basic(t *testing.T) {
+	setupFakeServerRpaasACL(t)
+
+	resourceName := "rpaas_acl.myacl"
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		IDRefreshName:     resourceName,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRpaasACLConfig_basic("myacl"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "instance", "myacl"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "host", "test-host.globoi.com"),
+					resource.TestCheckResourceAttr(resourceName, "port", "80"),
+				),
+			},
+			{
+				// Testing Import
+				Config:        `resource "rpaas_acl" "myacl" {}`,
+				ResourceName:  resourceName,
+				ImportStateId: "rpaasv2-be/myacl test-host.globoi.com:80",
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
+					assert.Equal(t, "myacl", state.Attributes["instance"])
+					assert.Equal(t, "test-host.globoi.com", state.Attributes["host"])
+					assert.Equal(t, "80", state.Attributes["port"])
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func setupFakeServerRpaasACL(t *testing.T) {
 	fakeServer := echo.New()
 	fakeServer.POST("/services/rpaasv2-be/proxy/myacl", func(c echo.Context) error {
 		p := types.AllowedUpstream{}
@@ -53,24 +93,6 @@ func TestAccRpaasACL_basic(t *testing.T) {
 	server := httptest.NewServer(fakeServer)
 	os.Setenv("TSURU_TARGET", server.URL)
 	os.Setenv("TSURU_TOKEN", "asdf")
-
-	resourceName := "rpaas_acl.myacl"
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		IDRefreshName:     resourceName,
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      nil,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccRpaasACLConfig_basic("myacl"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "instance", "myacl"),
-					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
-				),
-			},
-		},
-	})
 }
 
 func testAccRpaasACLConfig_basic(name string) string {
