@@ -16,7 +16,7 @@ import (
 
 func resourceRpaasAutoscale() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasAutoscaleCreate,
+		CreateContext: resourceRpaasAutoscaleUpdate,
 		ReadContext:   resourceRpaasAutoscaleRead,
 		UpdateContext: resourceRpaasAutoscaleUpdate,
 		DeleteContext: resourceRpaasAutoscaleDelete,
@@ -56,7 +56,8 @@ func resourceRpaasAutoscale() *schema.Resource {
 	}
 }
 
-func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	// Create or Update
 	provider := meta.(*rpaasProvider)
 
 	instance := d.Get("instance").(string)
@@ -72,15 +73,15 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if v, ok := d.GetOk("min_replicas"); ok {
-		args.MinReplicas = pointerToInt32(int32(v.(int)))
+		args.MinReplicas = int32ToPointer(int32(v.(int)))
 	}
 
 	if v, ok := d.GetOk("max_replicas"); ok {
-		args.MaxReplicas = pointerToInt32(int32(v.(int)))
+		args.MaxReplicas = int32ToPointer(int32(v.(int)))
 	}
 
 	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
-		args.CPU = pointerToInt32(int32(v.(int)))
+		args.CPU = int32ToPointer(int32(v.(int)))
 	}
 
 	err = rpaasRetry(ctx, d, func() error {
@@ -88,7 +89,7 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create autoscale for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to set autoscale for instance %s: %v", instance, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", serviceName, instance))
@@ -97,14 +98,18 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
-
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
+	serviceName, instance, err := parseRpaasInstanceID(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.Set("service_name", serviceName)
+	d.Set("instance", instance)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
+
 	autoscale, err := rpaasClient.GetAutoscale(ctx, rpaas_client.GetAutoscaleArgs{Instance: instance})
 	if err != nil {
 		return diag.Errorf("Unable to get autoscale for %s: %v", instance, err)
@@ -125,46 +130,14 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 	return nil
 }
 
-func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	provider := meta.(*rpaasProvider)
-
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
-	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
-	if err != nil {
-		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
-	}
-
-	args := rpaas_client.UpdateAutoscaleArgs{
-		Instance: instance,
-	}
-
-	if v, ok := d.GetOk("min_replicas"); ok {
-		args.MinReplicas = pointerToInt32(int32(v.(int)))
-	}
-
-	if v, ok := d.GetOk("max_replicas"); ok {
-		args.MaxReplicas = pointerToInt32(int32(v.(int)))
-	}
-
-	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
-		args.CPU = pointerToInt32(int32(v.(int)))
-	}
-
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateAutoscale(ctx, args)
-	})
-	if err != nil {
-		return diag.Errorf("Unable to update autoscale for instance %s: %v", instance, err)
-	}
-	return nil
-}
-
 func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
+	serviceName, instance, err := parseRpaasInstanceID(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
@@ -179,9 +152,11 @@ func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.Errorf("Unable to remove autoscale for instance %s: %v", instance, err)
 	}
+
+	d.SetId("")
 	return nil
 }
 
-func pointerToInt32(x int32) *int32 {
+func int32ToPointer(x int32) *int32 {
 	return &x
 }

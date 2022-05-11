@@ -6,6 +6,7 @@ package rpaas
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -134,4 +135,13 @@ func rpaasRetry(ctx context.Context, d *schema.ResourceData, retryFunc func() er
 
 		return resource.NonRetryableError(err)
 	})
+}
+
+func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
+	parts := strings.Split(id, "/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("could not parse id %q. Format should be service/instance", id)
+	}
+
+	return parts[0], parts[1], nil
 }
