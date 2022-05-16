@@ -22,11 +22,12 @@ import (
 
 func TestAccRpaasAutoscale_basic(t *testing.T) {
 	setupFakeServerRpaasAutoscale(t)
-
 	resourceName := "rpaas_autoscale.be_autoscale"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
 		IDRefreshName:     resourceName,
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      nil,

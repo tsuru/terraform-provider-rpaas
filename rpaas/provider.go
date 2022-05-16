@@ -98,17 +98,20 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 		token = t
 	}
 
-	cli, err := rpaas_client.NewClientThroughTsuruWithOptions(
-		host,
-		token,
-		"unset",
-		rpaas_client.ClientOptions{
-			Timeout:            10 * time.Second,
-			InsecureSkipVerify: d.Get("skip_cert_verification").(bool),
-		},
-	)
+	var cli rpaas_client.Client
+	rpaasClientOptions := rpaas_client.ClientOptions{
+		Timeout:            10 * time.Second,
+		InsecureSkipVerify: d.Get("skip_cert_verification").(bool),
+	}
+
+	providerSkipTsuruPassthrough := os.Getenv("PROVIDER_SKIP_TSURU_PASSTHROUGH")
+	if providerSkipTsuruPassthrough == "true" {
+		cli, err = rpaas_client.NewClientWithOptions(os.Getenv("RPAAS_TARGET"), "", "", rpaasClientOptions)
+	} else {
+		cli, err = rpaas_client.NewClientThroughTsuruWithOptions(host, token, "unset", rpaasClientOptions)
+	}
 	if err != nil {
-		return nil, diag.FromErr(err)
+		return nil, diag.Errorf("Could not start Rpaas Client: %v", err)
 	}
 
 	p := &rpaasProvider{
