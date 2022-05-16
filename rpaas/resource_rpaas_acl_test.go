@@ -5,23 +5,18 @@
 package rpaas
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func TestAccRpaasACL_basic(t *testing.T) {
-	setupFakeServerRpaasACL(t)
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
 
 	resourceName := "rpaas_acl.myacl"
 	resource.Test(t, resource.TestCase{
@@ -31,27 +26,63 @@ func TestAccRpaasACL_basic(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasACLConfig_basic("myacl"),
+				Config: testAccRpaasACLConfig_basic("test-host.globoi.com", "80"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "instance", "myacl"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "host", "test-host.globoi.com"),
 					resource.TestCheckResourceAttr(resourceName, "port", "80"),
+					func(s *terraform.State) error {
+						acls, err := testAPIClient.ListAccessControlList(context.Background(), "my-rpaas")
+						assert.NoError(t, err)
+						assert.Len(t, acls, 1)
+						assert.Equal(t, "test-host.globoi.com", acls[0].Host)
+						assert.Equal(t, 80, acls[0].Port)
+						return nil
+					},
 				),
 			},
 			{
+				// Testing Update
+				Config: testAccRpaasACLConfig_basic("test-host.globoi.com", "333"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "host", "test-host.globoi.com"),
+					resource.TestCheckResourceAttr(resourceName, "port", "333"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRpaasACL_import(t *testing.T) {
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
+
+	if err := testAPIClient.AddAccessControlList(context.Background(), "my-rpaas", "imported-host.globoi.com", 500); err != nil {
+		t.Errorf("Api client failed to connect: %v", err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
 				// Testing Import
-				Config:        `resource "rpaas_acl" "myacl" {}`,
-				ResourceName:  resourceName,
-				ImportStateId: "rpaasv2-be/myacl test-host.globoi.com:80",
+				Config:        `resource "rpaas_acl" "imported_acl" {}`,
+				ResourceName:  "rpaas_acl.imported_acl",
+				ImportStateId: "rpaasv2-be/my-rpaas imported-host.globoi.com:500",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
 					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
-					assert.Equal(t, "myacl", state.Attributes["instance"])
-					assert.Equal(t, "test-host.globoi.com", state.Attributes["host"])
-					assert.Equal(t, "80", state.Attributes["port"])
+					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
+					assert.Equal(t, "imported-host.globoi.com", state.Attributes["host"])
+					assert.Equal(t, "500", state.Attributes["port"])
 					return nil
 				},
 			},
@@ -59,50 +90,14 @@ func TestAccRpaasACL_basic(t *testing.T) {
 	})
 }
 
-func setupFakeServerRpaasACL(t *testing.T) {
-	fakeServer := echo.New()
-	fakeServer.POST("/services/rpaasv2-be/proxy/myacl", func(c echo.Context) error {
-		p := types.AllowedUpstream{}
-		err := c.Bind(&p)
-		require.NoError(t, err)
-		assert.Equal(t, "test-host.globoi.com", p.Host)
-		assert.Equal(t, 80, p.Port)
-
-		return c.JSON(http.StatusCreated, nil)
-	})
-	fakeServer.GET("/services/rpaasv2-be/proxy/myacl", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, []types.AllowedUpstream{
-			{
-				Host: "test-host.globoi.com",
-				Port: 80,
-			},
-		})
-	})
-	fakeServer.DELETE("/services/rpaasv2-be/proxy/myacl", func(c echo.Context) error {
-		p := types.AllowedUpstream{}
-		err := c.Bind(&p)
-		require.NoError(t, err)
-		assert.Equal(t, "test-host.globoi.com", p.Host)
-		assert.Equal(t, 80, p.Port)
-
-		return c.NoContent(http.StatusNoContent)
-	})
-	fakeServer.HTTPErrorHandler = func(err error, c echo.Context) {
-		t.Errorf("methods=%s, path=%s, err=%s", c.Request().Method, c.Path(), err.Error())
-	}
-	server := httptest.NewServer(fakeServer)
-	os.Setenv("TSURU_TARGET", server.URL)
-	os.Setenv("TSURU_TOKEN", "asdf")
-}
-
-func testAccRpaasACLConfig_basic(name string) string {
+func testAccRpaasACLConfig_basic(host, port string) string {
 	return fmt.Sprintf(`
 resource "rpaas_acl" "myacl" {
 	service_name = "rpaasv2-be"
-	instance     = "%s"
+	instance     = "my-rpaas"
 
-	host = "test-host.globoi.com"
-	port = 80
+	host = "%s"
+	port = %s
 }
-`, name)
+`, host, port)
 }
