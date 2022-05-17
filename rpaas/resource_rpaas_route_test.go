@@ -5,50 +5,19 @@
 package rpaas
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/ajg/form"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-
-	echo "github.com/labstack/echo/v4"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 )
 
 func TestAccRpaasRoute_basic(t *testing.T) {
-	fakeServer := echo.New()
-	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		p := types.Route{}
-		err := form.NewDecoder(c.Request().Body).Decode(&p)
-		require.NoError(t, err)
-		assert.Equal(t, "/", p.Path)
-		assert.True(t, p.HTTPSOnly)
-		assert.Equal(t, "	# nginx config\n", p.Content)
-		return c.JSON(http.StatusCreated, nil)
-	})
-	fakeServer.GET("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, struct {
-			Routes []types.Route `json:"paths"`
-		}{
-			Routes: []types.Route{
-				{Path: "/", Content: "	# nginx config\n", HTTPSOnly: true},
-			},
-		})
-	})
-	fakeServer.DELETE("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
-	})
-	fakeServer.HTTPErrorHandler = func(err error, c echo.Context) {
-		t.Errorf("methods=%s, path=%s, err=%s", c.Request().Method, c.Path(), err.Error())
-	}
-	server := httptest.NewServer(fakeServer)
-	os.Setenv("TSURU_TARGET", server.URL)
-	os.Setenv("TSURU_TOKEN", "asdf")
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
 
 	resourceName := "rpaas_route.custom_route"
 	resource.Test(t, resource.TestCase{
@@ -58,30 +27,120 @@ func TestAccRpaasRoute_basic(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasRouteConfig_basic(server.URL, "my_rpaas"),
+				Config: testAccRpaasRouteConfig("/", "original content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "instance", "my_rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "path", "/"),
+					resource.TestCheckResourceAttr(resourceName, "https_only", "false"),
+					resource.TestCheckResourceAttr(resourceName, "content", "original content\n"),
+					resource.TestCheckResourceAttr(resourceName, "destination", ""),
+					func(s *terraform.State) error {
+						routes, err := testAPIClient.ListRoutes(context.Background(), client.ListRoutesArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, routes, 1)
+						assert.Equal(t, "/", routes[0].Path)
+						assert.Equal(t, false, routes[0].HTTPSOnly)
+						assert.Equal(t, "original content\n", routes[0].Content)
+						assert.Equal(t, "", routes[0].Destination)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccRpaasRouteConfig("/", "change content"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "path", "/"),
+					resource.TestCheckResourceAttr(resourceName, "https_only", "false"),
+					resource.TestCheckResourceAttr(resourceName, "content", "change content\n"),
+					resource.TestCheckResourceAttr(resourceName, "destination", ""),
+					func(s *terraform.State) error {
+						routes, err := testAPIClient.ListRoutes(context.Background(), client.ListRoutesArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, routes, 1)
+						assert.Equal(t, "/", routes[0].Path)
+						assert.Equal(t, false, routes[0].HTTPSOnly)
+						assert.Equal(t, "change content\n", routes[0].Content)
+						assert.Equal(t, "", routes[0].Destination)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccRpaasRouteConfig("/another/path", "change content"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "path", "/another/path"),
+					resource.TestCheckResourceAttr(resourceName, "https_only", "false"),
+					resource.TestCheckResourceAttr(resourceName, "content", "change content\n"),
+					resource.TestCheckResourceAttr(resourceName, "destination", ""),
+					func(s *terraform.State) error {
+						routes, err := testAPIClient.ListRoutes(context.Background(), client.ListRoutesArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, routes, 1)
+						assert.Equal(t, "/another/path", routes[0].Path)
+						assert.Equal(t, false, routes[0].HTTPSOnly)
+						assert.Equal(t, "change content\n", routes[0].Content)
+						assert.Equal(t, "", routes[0].Destination)
+						return nil
+					},
 				),
 			},
 		},
 	})
 }
 
-func testAccRpaasRouteConfig_basic(fakeServer, name string) string {
+func TestAccRpaasRoute_import(t *testing.T) {
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
+
+	if err := testAPIClient.UpdateRoute(context.Background(),
+		client.UpdateRouteArgs{Instance: "my-rpaas", Path: "/path/1", Destination: "http://infinity-and-beyond:5555", HTTPSOnly: true},
+	); err != nil {
+		t.Errorf("Api client failed to connect: %v", err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
+				Config:        `resource "rpaas_route" "imported" {}`,
+				ResourceName:  "rpaas_route.imported",
+				ImportStateId: "rpaasv2-be::my-rpaas::/path/1",
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
+					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
+					assert.Equal(t, "/path/1", state.Attributes["path"])
+					assert.Equal(t, "true", state.Attributes["https_only"])
+					assert.Equal(t, "http://infinity-and-beyond:5555", state.Attributes["destination"])
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func testAccRpaasRouteConfig(path, content string) string {
 	return fmt.Sprintf(`
 resource "rpaas_route" "custom_route" {
-	instance = "%s"
+	instance = "my-rpaas"
 	service_name = "rpaasv2-be"
 
-	path = "/"
-	https_only = true
+	path = "%s"
 
-	content = <<EOF
-	# nginx config
+	content = <<-EOF
+		%s
 	EOF
 }
-`, name)
+`, path, content)
 }
