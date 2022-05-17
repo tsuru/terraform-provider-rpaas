@@ -5,22 +5,20 @@
 package rpaas
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	echo "github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 )
 
 func TestAccRpaasBlock_basic(t *testing.T) {
-	setupFakeServerRpaasBlock(t)
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
 
 	resourceName := "rpaas_block.custom_block_server"
 	resource.Test(t, resource.TestCase{
@@ -29,80 +27,110 @@ func TestAccRpaasBlock_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasBlockConfig_basic("my_rpaas"),
+				Config: testAccRpaasBlockConfig("server", "# nginx config"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "instance", "my_rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "server"),
+					resource.TestCheckResourceAttr(resourceName, "content", "# nginx config\n"),
+					func(s *terraform.State) error {
+						blocks, err := testAPIClient.ListBlocks(context.Background(), client.ListBlocksArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, blocks, 1)
+						assert.Equal(t, "server", blocks[0].Name)
+						assert.Equal(t, "# nginx config\n", blocks[0].Content)
+						return nil
+					},
 				),
 			},
-			// {
-			// 	// Testing Import
-			// 	Config:        `resource "rpaas_block" "imported" {}`,
-			// 	ResourceName:  "rpaas_block.imported",
-			// 	ImportStateId: "rpaasv2-be/my_rpaas/lua-worker",
-			// 	ImportState:   true,
-			// 	ImportStateCheck: func(s []*terraform.InstanceState) error {
-			// 		state := s[0]
-			// 		assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
-			// 		assert.Equal(t, "my_rpaas", state.Attributes["instance"])
-			// 		assert.Equal(t, "lua-worker", state.Attributes["name"])
-			// 		assert.Equal(t, "imported", state.Attributes["content"])
-			// 		return nil
-			// 	},
-			// },
+			{
+				// Testing Update - block content
+				Config: testAccRpaasBlockConfig("server", "# a different content"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "name", "server"),
+					resource.TestCheckResourceAttr(resourceName, "content", "# a different content\n"),
+					func(s *terraform.State) error {
+						blocks, err := testAPIClient.ListBlocks(context.Background(), client.ListBlocksArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, blocks, 1)
+						assert.Equal(t, "server", blocks[0].Name)
+						assert.Equal(t, "# a different content\n", blocks[0].Content)
+						return nil
+					},
+				),
+			},
+			{
+				// Testing Update - block name
+				Config: testAccRpaasBlockConfig("http", "# a different content"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "name", "http"),
+					resource.TestCheckResourceAttr(resourceName, "content", "# a different content\n"),
+					func(s *terraform.State) error {
+						blocks, err := testAPIClient.ListBlocks(context.Background(), client.ListBlocksArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, blocks, 1)
+						assert.Equal(t, "http", blocks[0].Name)
+						assert.Equal(t, "# a different content\n", blocks[0].Content)
+						return nil
+					},
+				),
+			},
 		},
 	})
 }
 
-func testAccRpaasBlockConfig_basic(name string) string {
+func TestAccRpaasBlock_import(t *testing.T) {
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
+
+	if err := testAPIClient.UpdateBlock(context.Background(),
+		client.UpdateBlockArgs{Instance: "my-rpaas", Name: "lua-worker", Content: "imported"},
+	); err != nil {
+		t.Errorf("Api client failed to connect: %v", err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
+				// Testing Import
+				Config:        `resource "rpaas_block" "imported" {}`,
+				ResourceName:  "rpaas_block.imported",
+				ImportStateId: "rpaasv2-be/my-rpaas/lua-worker",
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
+					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
+					assert.Equal(t, "lua-worker", state.Attributes["name"])
+					assert.Equal(t, "imported", state.Attributes["content"])
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func testAccRpaasBlockConfig(block, content string) string {
 	return fmt.Sprintf(`
 resource "rpaas_block" "custom_block_server" {
-	instance = "%s"
+	instance = "my-rpaas"
 	service_name = "rpaasv2-be"
 
-	name = "server"
+	name = "%s"
 
 	content = <<-EOF
-	# nginx config
+	%s
 	EOF
 }
-`, name)
-}
-
-type blocksServerResponse struct {
-	Blocks []types.Block `json:"blocks"`
-}
-
-func setupFakeServerRpaasBlock(t *testing.T) {
-	fakeServer := echo.New()
-	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		var p types.Block
-		err := c.Bind(&p)
-		require.NoError(t, err)
-		assert.Equal(t, "server", p.Name)
-		assert.Equal(t, "# nginx config\n", p.Content)
-		return c.JSON(http.StatusOK, nil)
-	})
-	fakeServer.GET("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		// qparam := c.Request().URL.Query()
-		// path := qparam["callback"][0]
-		// if path == "/resources/my_rpaas/files/custom_file.txt" {
-
-		return c.JSON(http.StatusOK, blocksServerResponse{
-			Blocks: []types.Block{
-				{Name: "server", Content: "# nginx config\n"},
-			},
-		})
-	})
-	fakeServer.DELETE("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
-	})
-	fakeServer.HTTPErrorHandler = func(err error, c echo.Context) {
-		t.Errorf("methods=%s, path=%s, err=%s", c.Request().Method, c.Path(), err.Error())
-	}
-	server := httptest.NewServer(fakeServer)
-	os.Setenv("TSURU_TARGET", server.URL)
-	os.Setenv("TSURU_TOKEN", "asdf")
+`, block, content)
 }
