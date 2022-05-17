@@ -100,8 +100,9 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 	provider := meta.(*rpaasProvider)
 	serviceName, instance, err := parseRpaasInstanceID(d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("Unable to parse Autoscale ID: %v", err)
 	}
+
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
 

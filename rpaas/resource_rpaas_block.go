@@ -101,6 +101,10 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	provider := meta.(*rpaasProvider)
 
 	serviceName, instance, blockName, err := parseRpaasBlockID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Block ID: %v", err)
+	}
+
 	d.Set("instance", instance)
 	d.Set("service_name", serviceName)
 	d.Set("name", blockName)
