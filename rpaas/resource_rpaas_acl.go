@@ -78,7 +78,6 @@ func resourceRpaasACLRead(ctx context.Context, d *schema.ResourceData, meta inte
 	id := d.Id()
 
 	serviceName, instance, host, port, err := parseACLID(id)
-
 	if err != nil {
 		return diag.Errorf("Unable to parse ACL ID: %v", err)
 	}

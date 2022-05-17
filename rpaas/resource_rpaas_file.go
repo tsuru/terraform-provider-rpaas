@@ -107,7 +107,7 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 
 	serviceName, instance, filename, err := parseRpaasFileID(d.Id())
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("Unable to parse File ID: %v", err)
 	}
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
