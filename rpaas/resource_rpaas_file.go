@@ -8,10 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -43,11 +41,10 @@ func resourceRpaasFile() *schema.Resource {
 				Description: "RPaaS Service Name",
 			},
 			"name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				Description:      "Name of a persistent file in the instance filesystem",
-				ValidateDiagFunc: validateResourceRpaasFileName,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Name of a persistent file in the instance filesystem",
 			},
 			"content": {
 				Type:        schema.TypeString,
@@ -158,30 +155,6 @@ func resourceRpaasFileDelete(ctx context.Context, d *schema.ResourceData, meta i
 
 	if err != nil {
 		return diag.Errorf("Unable to remove file %q for instance %s: %v", filename, instance, err)
-	}
-
-	return nil
-}
-
-func validateResourceRpaasFileName(v interface{}, p cty.Path) diag.Diagnostics {
-	value := v.(string)
-
-	if len(value) < 1 {
-		return diag.Diagnostics{{
-			Severity: diag.Error,
-			Summary:  "Invalid filename",
-			Detail:   "Filename cannot be empty string",
-		}}
-	}
-
-	re := regexp.MustCompile(`[^\w._-]`)
-	invalidFilename := re.MatchString(value)
-	if invalidFilename {
-		return diag.Diagnostics{{
-			Severity: diag.Error,
-			Summary:  "Invalid filename",
-			Detail:   fmt.Sprintf("%q contains invalid characters.", value),
-		}}
 	}
 
 	return nil
