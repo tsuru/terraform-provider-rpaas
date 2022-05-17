@@ -45,6 +45,7 @@ func resourceRpaasBlock() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 				ValidateDiagFunc: func(value interface{}, path cty.Path) diag.Diagnostics {
 					v := value.(string)
 
