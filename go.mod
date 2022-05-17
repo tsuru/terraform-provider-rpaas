@@ -5,7 +5,6 @@ go 1.16
 require (
 	cloud.google.com/go/storage v1.16.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/ajg/form v1.5.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.10.0
 	github.com/hashicorp/yamux v0.0.0-20210707203944-259a57b3608c // indirect
