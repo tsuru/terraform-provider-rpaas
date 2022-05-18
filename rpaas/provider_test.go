@@ -15,9 +15,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/require"
+	"github.com/tsuru/rpaas-operator/api/v1alpha1"
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	"github.com/tsuru/rpaas-operator/pkg/web"
 	"github.com/tsuru/rpaas-operator/pkg/web/target"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var testAccProvider *schema.Provider
@@ -39,13 +42,13 @@ func TestProvider(t *testing.T) {
 }
 
 func setupTestAPIServer(t *testing.T) (client.Client, *web.Api) {
-	apiServerListen := fmt.Sprintf("127.0.0.1:199%02d", rand.Intn(99))
+	apiServerListen := fmt.Sprintf("127.0.0.1:19%03d", rand.Intn(999))
 	os.Setenv("RPAAS_TARGET", "http://"+apiServerListen)
 	os.Setenv("TSURU_TARGET", "http://"+apiServerListen)
 	os.Setenv("TSURU_TOKEN", "asdf")
 	os.Setenv("PROVIDER_SKIP_TSURU_PASSTHROUGH", "true")
 
-	factory, _ := target.NewFakeServerFactory()
+	factory, _ := target.NewFakeServerFactory(fakeRuntimeObjects())
 	apiServer, err := web.NewWithTargetFactory(factory, apiServerListen, "", 2*time.Second, make(chan struct{}))
 	if err != nil {
 		t.Errorf("Fail to create the api")
@@ -71,5 +74,22 @@ func testAccResourceExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("Not found: %s", resourceName)
 		}
 		return nil
+	}
+}
+
+func fakeRuntimeObjects() []runtime.Object {
+	return []runtime.Object{
+		&v1alpha1.RpaasPlan{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-plan",
+				Namespace: "rpaasv2",
+			},
+		},
+		&v1alpha1.RpaasInstance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-rpaas",
+				Namespace: "rpaasv2",
+			},
+		},
 	}
 }
