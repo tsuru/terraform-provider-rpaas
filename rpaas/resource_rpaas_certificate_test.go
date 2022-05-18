@@ -6,61 +6,13 @@ package rpaas
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-
-	echo "github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
-	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func TestAccRpaasCertificate_basic(t *testing.T) {
-	fakeServer := echo.New()
-	fakeServer.POST("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		cert, err := readMultiPartFile(c, "cert")
-		require.NoError(t, err)
-		key, err := readMultiPartFile(c, "key")
-		require.NoError(t, err)
-
-		p := rpaas_client.UpdateCertificateArgs{}
-		err = c.Bind(&p)
-		require.NoError(t, err)
-		assert.Equal(t, "example.org", c.FormValue("name"))
-		assert.Equal(t, "	# the certificate\n", string(cert))
-		assert.Equal(t, "	# the key\n", string(key))
-		return c.JSON(http.StatusOK, nil)
-	})
-	fakeServer.GET("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, struct {
-			Routes       []types.Route           `json:"routes"`
-			Certificates []types.CertificateInfo `json:"certificates"`
-		}{
-			Routes: []types.Route{
-				{Path: "/", Content: "	# nginx config\n"},
-			},
-			Certificates: []types.CertificateInfo{
-				{
-					Name: "example.org",
-				},
-			},
-		})
-	})
-	fakeServer.DELETE("/services/rpaasv2-be/proxy/my_rpaas", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
-	})
-	fakeServer.HTTPErrorHandler = func(err error, c echo.Context) {
-		t.Errorf("methods=%s, path=%s, err=%s", c.Request().Method, c.Path(), err.Error())
-	}
-	server := httptest.NewServer(fakeServer)
-	os.Setenv("TSURU_TARGET", server.URL)
-	os.Setenv("TSURU_TOKEN", "asdf")
+	setupTestAPIServer(t)
 
 	resourceName := "rpaas_certificate.custom_route"
 	resource.Test(t, resource.TestCase{
@@ -70,10 +22,10 @@ func TestAccRpaasCertificate_basic(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasCertificateConfig_basic("my_rpaas"),
+				Config: testAccRpaasCertificateConfig("example.org"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "instance", "my_rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "example.org"),
 				),
@@ -82,39 +34,47 @@ func TestAccRpaasCertificate_basic(t *testing.T) {
 	})
 }
 
-func testAccRpaasCertificateConfig_basic(name string) string {
+func testAccRpaasCertificateConfig(name string) string {
 	return fmt.Sprintf(`
 resource "rpaas_certificate" "custom_route" {
-	instance = "%s"
+	instance = "my-rpaas"
 	service_name = "rpaasv2-be"
 
-	name = "example.org"
+	name = "%s"
 
-	certificate = <<EOF
-	# the certificate
+	certificate = <<-EOF
+		-----BEGIN CERTIFICATE-----
+		MIIB9TCCAV6gAwIBAgIRAIpoagB8BUn8x36iyvafmC0wDQYJKoZIhvcNAQELBQAw
+		EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0xOTAzMjYyMDIxMzlaFw0yMDAzMjUyMDIx
+		MzlaMBIxEDAOBgNVBAoTB0FjbWUgQ28wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJ
+		AoGBAOIsM9LhHqI3oBhHDCGZkGKgiI72ghnLr5UpaA3I9U7np/LPzt/JpWRG4wjF
+		5Var2IRPGoNwLcdybFW0YTqvw1wNY88q9BcpwS5PeV7uWyZqWafdSxxveaG6VeCH
+		YFMqopOKri4kJ4sZB9WS3xMlGZXK6zHPwA4xPtuVEND+LI17AgMBAAGjSzBJMA4G
+		A1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggrBgEFBQcDATAMBgNVHRMBAf8EAjAA
+		MBQGA1UdEQQNMAuCCWxvY2FsaG9zdDANBgkqhkiG9w0BAQsFAAOBgQCaF9zDYoPh
+		4KmqxFI3KB+cl8Z/0y0txxH4vqlnByBBiCLpPzivcCRFlT1bGPVJOLsyd/BdOset
+		yTcvMUPbnEPXZMR4Dsbzzjco1JxMSvZgkhm85gAlwNGjFZrMXqO8G5R/gpWN3UUc
+		7likRQOu7q61DlicQAZXRnOh6BbKaq1clg==
+		-----END CERTIFICATE-----
 	EOF
 
-	key = <<EOF
-	# the key
+	key = <<-EOF
+		-----BEGIN RSA PRIVATE KEY-----
+		MIICXQIBAAKBgQDiLDPS4R6iN6AYRwwhmZBioIiO9oIZy6+VKWgNyPVO56fyz87f
+		yaVkRuMIxeVWq9iETxqDcC3HcmxVtGE6r8NcDWPPKvQXKcEuT3le7lsmalmn3Usc
+		b3mhulXgh2BTKqKTiq4uJCeLGQfVkt8TJRmVyusxz8AOMT7blRDQ/iyNewIDAQAB
+		AoGBAI05gJqayyALj8HZCzAnzUpoZxytvAsTbm27TyfcZaCBchNhwxFlvgphYP5n
+		Y468+xOSuUF9WHiDcDYLzfJxMZAqmuS+D/IREYDkcrGVT1MXfSCkNaFVqG52+hLZ
+		GmGsy8+KsJnDJ1HYmwfSnaTj3L8+Bf2Hg291Yb1caRH9+5vBAkEA7P5N3cSN73Fa
+		HwaWzqkaY75mCR4TpRi27YWGA3wdQek2G71HiSbCOxrWOymvgoNRi6M/sdrP5PTt
+		JAFxC+pd8QJBAPRPvS0Tm/0lMIZ0q7jxyoW/gKDzokmSszopdlvSU53lN06vaYdK
+		XyTvqOO95nJx0DjkdM26QojJlSueMTitJisCQDuxNfWku0dTGqrz4uo8p5v16gdj
+		3vjXh8O9vOqFyWy/i9Ri0XDXJVbzxH/0WPObld+BB9sJTRHTKyPFhS7GIlECQDZ8
+		chxTez6BxMi3zHR6uEgL5Yv/yfnOldoq1RK1XaChNix+QnLBy2ZZbLkd6P8tEtsd
+		WE9pct0+193ace/J7fECQQDAhwHBpJjhM+k97D92akneKXIUBo+Egr5E5qF9/g5I
+		sM5FaDCEIJVbWjPDluxUGbVOQlFHsJs+pZv0Anf9DPwU
+		-----END RSA PRIVATE KEY-----
 	EOF
 }
 `, name)
-}
-
-func readMultiPartFile(c echo.Context, file string) (string, error) {
-	formFile, err := c.FormFile(file)
-	if err != nil {
-		return "", err
-	}
-	stream, err := formFile.Open()
-	if err != nil {
-		return "", err
-	}
-	defer stream.Close()
-	buffer, err := ioutil.ReadAll(stream)
-	if err != nil {
-		return "", err
-	}
-
-	return string(buffer), nil
 }

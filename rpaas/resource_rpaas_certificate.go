@@ -6,8 +6,10 @@ package rpaas
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -93,9 +95,16 @@ func resourceRpaasCertificateUpsert(ctx context.Context, d *schema.ResourceData,
 func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
-	name := d.Get("name").(string)
+	serviceName, instance, name, err := parseRpaasCertificateID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Certificate ID: %v", err)
+	}
+
+	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, name))
+	d.Set("service_name", serviceName)
+	d.Set("instance", instance)
+	d.Set("name", name)
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
@@ -143,4 +152,23 @@ func resourceRpaasCertificateDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("Unable to remove certificate for instance %s: %v", instance, err)
 	}
 	return nil
+}
+
+func parseRpaasCertificateID(id string) (serviceName, instance, certName string, err error) {
+	splitID := strings.Split(id, "/")
+
+	// support old bugging ID
+	if len(splitID) != 3 {
+		// handle deprecated id
+		splitID = strings.Split(id, " ")
+		if len(splitID) != 3 {
+			err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/block\"")
+			return
+		}
+	}
+
+	serviceName = splitID[0]
+	instance = splitID[1]
+	certName = splitID[2]
+	return
 }
