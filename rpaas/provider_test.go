@@ -7,6 +7,7 @@ package rpaas
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -62,6 +63,11 @@ func setupTestAPIServer(t *testing.T) (client.Client, *web.Api) {
 	if err != nil {
 		t.Errorf("failed to create new rpaas client")
 	}
+
+	if err := waitForOkStatus("http://" + apiServerListen + "/healthcheck"); err != nil {
+		t.Errorf("Failed connect to the API Server: %v", err)
+	}
+
 	return testAPIClient, apiServer
 }
 
@@ -95,4 +101,19 @@ func fakeRuntimeObjects() []runtime.Object {
 			},
 		},
 	}
+}
+
+func waitForOkStatus(url string) error {
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	for tries := 0; tries < 5; tries++ {
+		resp, err := client.Get(url)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			return nil
+		}
+
+	}
+	return fmt.Errorf("Could not get OK after too many attempts")
 }
