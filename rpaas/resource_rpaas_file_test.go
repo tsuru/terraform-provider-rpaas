@@ -50,21 +50,6 @@ func TestAccRpaasFile_basic(t *testing.T) {
 					},
 				),
 			},
-			// {
-			// 	// Testing Import
-			// 	Config:        `resource "rpaas_file" "imported" {}`,
-			// 	ResourceName:  importedResourceName,
-			// 	ImportStateId: "rpaasv2-be/my-rpaas/import_file.txt",
-			// 	ImportState:   true,
-			// 	ImportStateCheck: func(s []*terraform.InstanceState) error {
-			// 		state := s[0]
-			// 		assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
-			// 		assert.Equal(t, "my-rpaas", state.Attributes["instance"])
-			// 		assert.Equal(t, "import_file.txt", state.Attributes["name"])
-			// 		assert.Equal(t, "imported", state.Attributes["content"])
-			// 		return nil
-			// 	},
-			// },
 			{
 				// Testing Update - content
 				Config: testAccRpaasFileConfig("custom_file.txt", "changed"),
