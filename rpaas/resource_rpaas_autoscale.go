@@ -93,7 +93,7 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", serviceName, instance))
-	return nil
+	return resourceRpaasAutoscaleRead(ctx, d, meta)
 }
 
 func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

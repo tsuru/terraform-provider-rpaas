@@ -96,7 +96,7 @@ func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, filename))
-	return nil
+	return resourceRpaasFileRead(ctx, d, meta)
 }
 
 func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
