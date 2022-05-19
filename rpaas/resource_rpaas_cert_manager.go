@@ -6,6 +6,7 @@ package rpaas
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -24,20 +25,7 @@ func resourceRpaasCertManager() *schema.Resource {
 		UpdateContext: resourceRpaasCertManagerUpsert,
 		DeleteContext: resourceRpaasCertManagerDelete,
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				values := strings.Split(d.Id(), " ")
-				if len(values) != 3 {
-					return []*schema.ResourceData{d}, fmt.Errorf("Wrong ID format. Must be: '<service_name> <instance> <issuer>'")
-				}
-
-				d.Set("service_name", values[0])
-				d.Set("instance", values[1])
-				d.Set("issuer", values[2])
-
-				log.Printf("[DEBUG] Importing Cert Manager: {service: %s, instance: %s, issuer: %v}", values[0], values[1], values[2])
-
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -97,7 +85,7 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("could not create/update Cert Manager request: %v", err)
 	}
 
-	id := fmt.Sprintf("%s %s %s", serviceName, instance, issuer)
+	id := fmt.Sprintf("%s/%s/%s", serviceName, instance, issuer)
 	log.Printf("[DEBUG] Cert Manager certificate request created/updated successfully, stored in ID: %s", id)
 	d.SetId(id)
 
@@ -107,19 +95,26 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName := d.Get("service_name").(string)
+	serviceName, instance, issuer, err := parseCertManagerID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse CertManager ID: %v", err)
+	}
+
+	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, issuer)) // Fix legacy ID if needed
+	d.Set("service_name", serviceName)
+	d.Set("instance", instance)
+	d.Set("issuer", issuer)
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	instance := d.Get("instance").(string)
 	requests, err := rpaasClient.ListCertManagerRequests(ctx, instance)
 	if err != nil {
 		return diag.Errorf("could not list Cert Manager requests: %v", err)
 	}
 
-	issuer := d.Get("issuer").(string)
 	request, found := findCertManagerRequestByIssuer(requests, issuer)
 	if !found {
 		log.Printf("[DEBUG] Removing resource (ID: %s) from state as it's not found on RPaaS", d.Id())
@@ -170,4 +165,22 @@ func asSliceOfStrings(data interface{}) []string {
 	}
 
 	return values
+}
+
+func parseCertManagerID(id string) (serviceName, instance, issuer string, err error) {
+	splitID := strings.Split(id, "/")
+
+	if len(splitID) != 3 {
+		// handle legacy ID
+		splitID = strings.Split(id, " ")
+		if len(splitID) != 3 {
+			err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/issuer\"")
+			return
+		}
+	}
+
+	serviceName = splitID[0]
+	instance = splitID[1]
+	issuer = splitID[2]
+	return
 }

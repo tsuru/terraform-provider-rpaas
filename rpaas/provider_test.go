@@ -53,7 +53,10 @@ func setupTestAPIServer(t *testing.T) (client.Client, *web.Api) {
 	if err != nil {
 		t.Errorf("Fail to create the api")
 	}
-	go apiServer.StartWithOptions(web.APIServerStartOptions{DiscardLogging: true})
+	go apiServer.StartWithOptions(web.APIServerStartOptions{
+		DiscardLogging:          true,
+		ConfigEnableCertManager: true,
+	})
 
 	testAPIClient, err := client.NewClient("http://"+apiServerListen, "", "")
 	if err != nil {
