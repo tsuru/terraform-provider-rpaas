@@ -19,7 +19,7 @@ description: |-
 
 - **content** (String) Custom Nginx configuration
 - **instance** (String) RPaaS Instance Name
-- **name** (String) Name of the block that will receive the custom configuration content
+- **name** (String) Name of the block that will receive the custom configuration content. Allowed values: [root http server lua-server lua-worker]
 - **service_name** (String) RPaaS Service Name
 
 ### Optional
