@@ -85,11 +85,8 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("could not create/update Cert Manager request: %v", err)
 	}
 
-	id := fmt.Sprintf("%s/%s/%s", serviceName, instance, issuer)
-	log.Printf("[DEBUG] Cert Manager certificate request created/updated successfully, stored in ID: %s", id)
-	d.SetId(id)
-
-	return nil
+	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, issuer))
+	return resourceRpaasCertManagerRead(ctx, d, meta)
 }
 
 func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

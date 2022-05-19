@@ -71,7 +71,7 @@ func resourceRpaasACLCreate(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s %s:%d", serviceName, instance, host, port))
-	return nil
+	return resourceRpaasACLRead(ctx, d, meta)
 }
 
 func resourceRpaasACLRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

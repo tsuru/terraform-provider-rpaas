@@ -94,7 +94,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, blockName))
-	return nil
+	return resourceRpaasBlockRead(ctx, d, meta)
 }
 
 func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
