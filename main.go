@@ -5,12 +5,12 @@ package main
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/tsuru/terraform-provider-rpaas/rpaas"
+	"github.com/tsuru/terraform-provider-rpaas/internal/provider"
 )
 
 //go:generate tfplugindocs
 
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
-		ProviderFunc: rpaas.Provider})
+		ProviderFunc: provider.Provider})
 }

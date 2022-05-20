@@ -1,4 +1,4 @@
-package rpaas
+package provider
 
 import (
 	"context"
