@@ -28,15 +28,18 @@ resource "rpaas_route" "example" {
 
 ### Required
 
-- **instance** (String) RPaaS Instance Name
-- **path** (String) Path for this route
-- **service_name** (String) RPaaS Service Name
+- `instance` (String) RPaaS Instance Name
+- `path` (String) Path for this route
+- `service_name` (String) RPaaS Service Name
 
 ### Optional
 
-- **content** (String) Custom Nginx configuration content
-- **destination** (String) Custom Nginx upstream destination
-- **https_only** (Boolean) Only on https
-- **id** (String) The ID of this resource.
+- `content` (String) Custom Nginx configuration content
+- `destination` (String) Custom Nginx upstream destination
+- `https_only` (Boolean) Only on https
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 

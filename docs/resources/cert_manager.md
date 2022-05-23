@@ -27,13 +27,13 @@ resource "rpaas_cert_manager" "example" {
 
 ### Required
 
-- **dns_names** (List of String) A list of DNS names to be associated with the certificate in Subject Alternative Names extension
-- **instance** (String) RPaaS Instance Name
-- **issuer** (String) Certificate issuer name
-- **service_name** (String) RPaaS Service Name
+- `dns_names` (List of String) A list of DNS names to be associated with the certificate in Subject Alternative Names extension
+- `instance` (String) RPaaS Instance Name
+- `issuer` (String) Certificate issuer name
+- `service_name` (String) RPaaS Service Name
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

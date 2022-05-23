@@ -37,13 +37,13 @@ resource "rpaas_file" "example_2" {
 
 ### Required
 
-- **content** (String) Content of the persistent file in the instance filesystem
-- **instance** (String) RPaaS Instance Name
-- **name** (String) Name of a persistent file in the instance filesystem
-- **service_name** (String) RPaaS Service Name
+- `content` (String) Content of the persistent file in the instance filesystem
+- `instance` (String) RPaaS Instance Name
+- `name` (String) Name of a persistent file in the instance filesystem
+- `service_name` (String) RPaaS Service Name
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

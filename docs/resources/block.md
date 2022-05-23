@@ -73,13 +73,13 @@ resource "rpaas_block" "example_lua" {
 
 ### Required
 
-- **content** (String) Custom Nginx configuration
-- **instance** (String) RPaaS Instance Name
-- **name** (String) Name of the block that will receive the custom configuration content. Allowed values: [root http server lua-server lua-worker]
-- **service_name** (String) RPaaS Service Name
+- `content` (String) Custom Nginx configuration
+- `instance` (String) RPaaS Instance Name
+- `name` (String) Name of the block that will receive the custom configuration content. Allowed values: [root http server lua-server lua-worker]
+- `service_name` (String) RPaaS Service Name
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

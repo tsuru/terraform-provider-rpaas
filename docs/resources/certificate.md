@@ -28,14 +28,14 @@ resource "rpaas_certificate" "example" {
 
 ### Required
 
-- **certificate** (String) Certificate content
-- **instance** (String) RPaaS Instance Name
-- **key** (String, Sensitive) Key content
-- **name** (String) Name of certificate
-- **service_name** (String) RPaaS Service Name
+- `certificate` (String) Certificate content
+- `instance` (String) RPaaS Instance Name
+- `key` (String, Sensitive) Key content
+- `name` (String) Name of certificate
+- `service_name` (String) RPaaS Service Name
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

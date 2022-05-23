@@ -76,6 +76,6 @@ resource "rpaas_route" "be_route_custom" {
 
 ### Optional
 
-- **host** (String) Target to tsuru API
-- **skip_cert_verification** (Boolean) Disable certificate verification
-- **token** (String) Token to authenticate on tsuru API (optional)
+- `host` (String) Target to tsuru API
+- `skip_cert_verification` (Boolean) Disable certificate verification
+- `token` (String) Token to authenticate on tsuru API (optional)

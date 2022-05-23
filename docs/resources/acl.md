@@ -27,13 +27,13 @@ resource "rpaas_acl" "example" {
 
 ### Required
 
-- **host** (String) Hostname of desired destination
-- **instance** (String) RPaaS Instance Name
-- **port** (Number) Number of port
-- **service_name** (String) RPaaS Service Name
+- `host` (String) Hostname of desired destination
+- `instance` (String) RPaaS Instance Name
+- `port` (Number) Number of port
+- `service_name` (String) RPaaS Service Name
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 
