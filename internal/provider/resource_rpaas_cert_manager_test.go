@@ -31,7 +31,7 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 				Config: testAccRpaasCertManagerConfig("my-custom-issuer.ClusterIssuer.example.com", `["*.example.com", "my-instance.test"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2/my-rpaas/my-custom-issuer.ClusterIssuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer.ClusterIssuer.example.com"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer.ClusterIssuer.example.com"),
@@ -55,7 +55,7 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 				Config: testAccRpaasCertManagerConfig("my-custom-issuer.ClusterIssuer.example.com", `["my-instance.test"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2/my-rpaas/my-custom-issuer.ClusterIssuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer.ClusterIssuer.example.com"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer.ClusterIssuer.example.com"),
@@ -99,10 +99,11 @@ func TestAccRpaasCertManager_import(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
+			// Testing Import
 			{
 				Config:        `resource "rpaas_cert_manager" "imported" {}`,
 				ResourceName:  "rpaas_cert_manager.imported",
-				ImportStateId: "rpaasv2-be/my-rpaas/issuer.cluster.local",
+				ImportStateId: "rpaasv2-be::my-rpaas::issuer.cluster.local",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
@@ -113,6 +114,19 @@ func TestAccRpaasCertManager_import(t *testing.T) {
 					assert.Equal(t, "dns1.example.com", state.Attributes["dns_names.0"])
 					assert.Equal(t, "dns2.example.com", state.Attributes["dns_names.1"])
 					assert.Equal(t, "dns3.example.com", state.Attributes["dns_names.2"])
+					return nil
+				},
+			},
+			// Testing Import legacy ID
+			{
+				Config:        `resource "rpaas_cert_manager" "imported_legacy" {}`,
+				ResourceName:  "rpaas_cert_manager.imported_legacy",
+				ImportStateId: "rpaasv2-be my-rpaas issuer.cluster.local", // legacy ID
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas::issuer.cluster.local", state.Attributes["id"])
 					return nil
 				},
 			},

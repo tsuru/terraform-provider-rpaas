@@ -99,7 +99,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("Unable to create/update route %s for instance %s: %v", path, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path)) // using :: instead of / because of Path
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
 	return resourceRpaasRouteRead(ctx, d, meta)
 }
 
@@ -177,23 +177,28 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 func parseRpaasRouteID(id string) (serviceName, instance, path string, err error) {
 	splitID := strings.Split(id, "::")
 
-	if len(splitID) == 1 {
-		// handle old buggy format: "service/instance"
-		splitID = strings.Split(id, "/")
-		if len(splitID) != 2 {
-			err = fmt.Errorf("Resource ID could not be parsed. Format should be \"service::instance::path\", got %q", id)
-			return
-		}
-		splitID = append(splitID, "") // setting path as empty string
-	}
-
 	if len(splitID) != 3 {
-		err = fmt.Errorf("Resource ID could not be parsed. Format should be \"service::instance::path\", got %q", id)
+		serviceName, instance, path, err = parseRpaasRouteID_legacyV0(id)
+		if err != nil {
+			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::path\"", id)
+		}
 		return
 	}
 
 	serviceName = splitID[0]
 	instance = splitID[1]
 	path = splitID[2]
+	return
+}
+
+func parseRpaasRouteID_legacyV0(id string) (serviceName, instance, path string, err error) {
+	splitID := strings.Split(id, "/")
+	if len(splitID) != 2 {
+		err = fmt.Errorf("Resource ID could not be parsed. Legacy WRONG format: \"service/instance\"")
+		return
+	}
+
+	serviceName = splitID[0]
+	instance = splitID[1]
 	return
 }

@@ -46,8 +46,8 @@ resource "rpaas_autoscale" "example" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import rpaas_autoscale.resource_name "service/instance"
+terraform import rpaas_autoscale.resource_name "service::instance"
 
 # example
-terraform import rpaas_autoscale.myautoscale "rpaasv2-be/my-rpaas"
+terraform import rpaas_autoscale.myautoscale "rpaasv2-be::my-rpaas"
 ```

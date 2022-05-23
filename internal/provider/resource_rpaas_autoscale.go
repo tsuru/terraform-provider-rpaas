@@ -92,7 +92,7 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to set autoscale for instance %s: %v", instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", serviceName, instance))
+	d.SetId(fmt.Sprintf("%s::%s", serviceName, instance))
 	return resourceRpaasAutoscaleRead(ctx, d, meta)
 }
 
@@ -103,6 +103,7 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 		return diag.Errorf("Unable to parse Autoscale ID: %v", err)
 	}
 
+	d.SetId(fmt.Sprintf("%s::%s", serviceName, instance))
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
 

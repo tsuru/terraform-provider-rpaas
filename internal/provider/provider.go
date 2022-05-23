@@ -141,9 +141,22 @@ func rpaasRetry(ctx context.Context, d *schema.ResourceData, retryFunc func() er
 }
 
 func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
+	parts := strings.Split(id, "::")
+	if len(parts) != 2 {
+		serviceName, instance, err = parseRpaasInstanceID_legacyV0(id)
+		if err != nil {
+			err = fmt.Errorf("Could not parse id %q. Format should be service::instance", id)
+		}
+		return
+	}
+
+	return parts[0], parts[1], nil
+}
+
+func parseRpaasInstanceID_legacyV0(id string) (serviceName, instance string, err error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("could not parse id %q. Format should be service/instance", id)
+		return "", "", fmt.Errorf("Legacy ID cound not be parsed. Legacy format: service/instance")
 	}
 
 	return parts[0], parts[1], nil

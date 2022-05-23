@@ -6,7 +6,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -93,7 +92,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, blockName))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 	return resourceRpaasBlockRead(ctx, d, meta)
 }
 
@@ -105,6 +104,7 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("Unable to parse Block ID: %v", err)
 	}
 
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 	d.Set("instance", instance)
 	d.Set("service_name", serviceName)
 	d.Set("name", blockName)
@@ -127,7 +127,7 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 		b := blocks[0]
 		d.Set("name", b.Name)
 		d.Set("content", b.Content)
-		d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, b.Name))
+		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, b.Name))
 		return nil
 	}
 
@@ -168,19 +168,31 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func parseRpaasBlockID(id string) (serviceName, instance, blockName string, err error) {
-	splitID := strings.Split(id, "/")
+	splitID := strings.Split(id, "::")
 
-	// support old bugging ID
-	if len(splitID) < 2 || len(splitID) > 3 {
-		err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/block\"")
+	if len(splitID) != 3 {
+		serviceName, instance, blockName, err = parseRpaasBlockID_legacyV0(id)
+		if err != nil {
+			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::blockName\"", id)
+		}
 		return
 	}
 
 	serviceName = splitID[0]
 	instance = splitID[1]
-	if len(splitID) == 3 {
-		blockName = splitID[2]
+	blockName = splitID[2]
+	return
+}
+
+func parseRpaasBlockID_legacyV0(id string) (serviceName, instance, blockName string, err error) {
+	splitID := strings.Split(id, "/")
+
+	if len(splitID) != 2 {
+		err = fmt.Errorf("Resource ID could not be parsed. Legacy WRONG format: \"service/instance\"")
+		return
 	}
 
+	serviceName = splitID[0]
+	instance = splitID[1]
 	return
 }

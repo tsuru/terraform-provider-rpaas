@@ -29,6 +29,7 @@ func TestAccRpaasACL_basic(t *testing.T) {
 				Config: testAccRpaasACLConfig_basic("test-host.globoi.com", "80"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::test-host.globoi.com::80"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "host", "test-host.globoi.com"),
@@ -48,6 +49,7 @@ func TestAccRpaasACL_basic(t *testing.T) {
 				Config: testAccRpaasACLConfig_basic("test-host.globoi.com", "333"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::test-host.globoi.com::333"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "host", "test-host.globoi.com"),
@@ -75,7 +77,7 @@ func TestAccRpaasACL_import(t *testing.T) {
 				// Testing Import
 				Config:        `resource "rpaas_acl" "imported_acl" {}`,
 				ResourceName:  "rpaas_acl.imported_acl",
-				ImportStateId: "rpaasv2-be/my-rpaas imported-host.globoi.com:500",
+				ImportStateId: "rpaasv2-be::my-rpaas::imported-host.globoi.com::500",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
@@ -83,6 +85,19 @@ func TestAccRpaasACL_import(t *testing.T) {
 					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
 					assert.Equal(t, "imported-host.globoi.com", state.Attributes["host"])
 					assert.Equal(t, "500", state.Attributes["port"])
+					return nil
+				},
+			},
+			{
+				// Testing Import legacy ID
+				Config:        `resource "rpaas_acl" "imported_acl" {}`,
+				ResourceName:  "rpaas_acl.imported_acl",
+				ImportStateId: "rpaasv2-be/my-rpaas imported-host.globoi.com:500", //legacy id
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas::imported-host.globoi.com::500", state.Attributes["id"])
 					return nil
 				},
 			},

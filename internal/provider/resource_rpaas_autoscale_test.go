@@ -32,6 +32,7 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 				Config: testAccRpaasRouterConfig(10),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "min_replicas", "10"),
@@ -54,6 +55,7 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 				Config: testAccRpaasRouterConfig(1),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "min_replicas", "1"), //changed
@@ -99,7 +101,7 @@ func TestAccRpaasAutoscale_import(t *testing.T) {
 				// Testing Import
 				Config:        `resource "rpaas_autoscale" "imported" {}`,
 				ResourceName:  "rpaas_autoscale.imported",
-				ImportStateId: "rpaasv2-be/my-rpaas",
+				ImportStateId: "rpaasv2-be::my-rpaas",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
@@ -108,6 +110,19 @@ func TestAccRpaasAutoscale_import(t *testing.T) {
 					assert.Equal(t, "1", state.Attributes["min_replicas"])
 					assert.Equal(t, "5", state.Attributes["max_replicas"])
 					assert.Equal(t, "50", state.Attributes["target_cpu_utilization_percentage"])
+					return nil
+				},
+			},
+			{
+				// Testing Import legacy ID
+				Config:        `resource "rpaas_autoscale" "imported" {}`,
+				ResourceName:  "rpaas_autoscale.imported",
+				ImportStateId: "rpaasv2-be/my-rpaas", //legacy id
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas", state.Attributes["id"])
 					return nil
 				},
 			},

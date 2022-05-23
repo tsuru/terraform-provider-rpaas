@@ -6,7 +6,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -88,7 +87,7 @@ func resourceRpaasCertificateUpsert(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("Unable to create/update certificate %s for instance %s: %v", args.Certificate, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, args.Name))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, args.Name))
 	return resourceRpaasCertificateRead(ctx, d, meta)
 }
 
@@ -100,7 +99,7 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to parse Certificate ID: %v", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, name))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, name))
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
 	d.Set("name", name)
@@ -155,16 +154,28 @@ func resourceRpaasCertificateDelete(ctx context.Context, d *schema.ResourceData,
 }
 
 func parseRpaasCertificateID(id string) (serviceName, instance, certName string, err error) {
-	splitID := strings.Split(id, "/")
+	splitID := strings.Split(id, "::")
 
-	// support old bugging ID
 	if len(splitID) != 3 {
-		// handle deprecated id
-		splitID = strings.Split(id, " ")
-		if len(splitID) != 3 {
-			err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/block\"")
-			return
+		serviceName, instance, certName, err = parseRpaasCertificateID_legacyV0(id)
+		if err != nil {
+			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::certName\"", id)
 		}
+		return
+	}
+
+	serviceName = splitID[0]
+	instance = splitID[1]
+	certName = splitID[2]
+	return
+}
+
+func parseRpaasCertificateID_legacyV0(id string) (serviceName, instance, certName string, err error) {
+	splitID := strings.Split(id, " ")
+
+	if len(splitID) != 3 {
+		err = fmt.Errorf("Resource ID could not be parsed. Legacy format: \"service instance certName\"")
+		return
 	}
 
 	serviceName = splitID[0]

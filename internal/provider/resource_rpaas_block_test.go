@@ -30,6 +30,7 @@ func TestAccRpaasBlock_basic(t *testing.T) {
 				Config: testAccRpaasBlockConfig("server", "# nginx config"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::server"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "server"),
@@ -49,6 +50,7 @@ func TestAccRpaasBlock_basic(t *testing.T) {
 				Config: testAccRpaasBlockConfig("server", "# a different content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::server"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "server"),
@@ -68,6 +70,7 @@ func TestAccRpaasBlock_basic(t *testing.T) {
 				Config: testAccRpaasBlockConfig("http", "# a different content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::http"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "http"),
@@ -105,7 +108,7 @@ func TestAccRpaasBlock_import(t *testing.T) {
 				// Testing Import
 				Config:        `resource "rpaas_block" "imported" {}`,
 				ResourceName:  "rpaas_block.imported",
-				ImportStateId: "rpaasv2-be/my-rpaas/lua-worker",
+				ImportStateId: "rpaasv2-be::my-rpaas::lua-worker",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
@@ -113,6 +116,19 @@ func TestAccRpaasBlock_import(t *testing.T) {
 					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
 					assert.Equal(t, "lua-worker", state.Attributes["name"])
 					assert.Equal(t, "imported", state.Attributes["content"])
+					return nil
+				},
+			},
+			{
+				// Testing Import legacy ID
+				Config:        `resource "rpaas_block" "imported" {}`,
+				ResourceName:  "rpaas_block.imported",
+				ImportStateId: "rpaasv2-be/my-rpaas", //legacy id
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas::lua-worker", state.Attributes["id"])
 					return nil
 				},
 			},

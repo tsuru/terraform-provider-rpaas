@@ -6,7 +6,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -85,7 +84,7 @@ func resourceRpaasCertManagerUpsert(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("could not create/update Cert Manager request: %v", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, issuer))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, issuer))
 	return resourceRpaasCertManagerRead(ctx, d, meta)
 }
 
@@ -97,7 +96,7 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to parse CertManager ID: %v", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, issuer)) // Fix legacy ID if needed
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, issuer))
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
 	d.Set("issuer", issuer)
@@ -165,15 +164,27 @@ func asSliceOfStrings(data interface{}) []string {
 }
 
 func parseCertManagerID(id string) (serviceName, instance, issuer string, err error) {
-	splitID := strings.Split(id, "/")
+	splitID := strings.Split(id, "::")
 
 	if len(splitID) != 3 {
-		// handle legacy ID
-		splitID = strings.Split(id, " ")
-		if len(splitID) != 3 {
-			err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/issuer\"")
-			return
+		serviceName, instance, issuer, err = parseCertManagerID_legacyV0(id)
+		if err != nil {
+			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::issuer\"", id)
 		}
+		return
+	}
+
+	serviceName = splitID[0]
+	instance = splitID[1]
+	issuer = splitID[2]
+	return
+}
+
+func parseCertManagerID_legacyV0(id string) (serviceName, instance, issuer string, err error) {
+	splitID := strings.Split(id, " ")
+	if len(splitID) != 3 {
+		err = fmt.Errorf("Legacy ID cound not be parsed. Legacy format: \"service instance issuer\"")
+		return
 	}
 
 	serviceName = splitID[0]

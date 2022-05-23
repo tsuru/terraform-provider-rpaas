@@ -30,6 +30,7 @@ func TestAccRpaasRoute_basic(t *testing.T) {
 				Config: testAccRpaasRouteConfig("/", "original content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::/"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "path", "/"),
@@ -52,6 +53,7 @@ func TestAccRpaasRoute_basic(t *testing.T) {
 				Config: testAccRpaasRouteConfig("/", "change content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::/"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "path", "/"),
@@ -74,6 +76,7 @@ func TestAccRpaasRoute_basic(t *testing.T) {
 				Config: testAccRpaasRouteConfig("/another/path", "change content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::/another/path"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "path", "/another/path"),
@@ -112,6 +115,7 @@ func TestAccRpaasRoute_import(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
+				// Testing Import
 				Config:        `resource "rpaas_route" "imported" {}`,
 				ResourceName:  "rpaas_route.imported",
 				ImportStateId: "rpaasv2-be::my-rpaas::/path/1",
@@ -123,6 +127,19 @@ func TestAccRpaasRoute_import(t *testing.T) {
 					assert.Equal(t, "/path/1", state.Attributes["path"])
 					assert.Equal(t, "true", state.Attributes["https_only"])
 					assert.Equal(t, "http://infinity-and-beyond:5555", state.Attributes["destination"])
+					return nil
+				},
+			},
+			{
+				// Testing Import legacy ID
+				Config:        `resource "rpaas_route" "imported_legacy" {}`,
+				ResourceName:  "rpaas_route.imported_legacy",
+				ImportStateId: "rpaasv2-be/my-rpaas", // legacy id
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas::/path/1", state.Attributes["id"])
 					return nil
 				},
 			},

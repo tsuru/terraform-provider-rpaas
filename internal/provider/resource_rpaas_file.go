@@ -6,7 +6,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -95,7 +94,7 @@ func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Unable to upsert file %q for instance %s: %v", filename, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, filename))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, filename))
 	return resourceRpaasFileRead(ctx, d, meta)
 }
 
@@ -106,6 +105,7 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.Errorf("Unable to parse File ID: %v", err)
 	}
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, filename))
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -161,9 +161,24 @@ func resourceRpaasFileDelete(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func parseRpaasFileID(id string) (serviceName, instance, filename string, err error) {
+	splitID := strings.Split(id, "::")
+	if len(splitID) != 3 {
+		serviceName, instance, filename, err = parseRpaasFileID_legacyV0(id)
+		if err != nil {
+			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::file\"", id)
+		}
+		return
+	}
+	serviceName = splitID[0]
+	instance = splitID[1]
+	filename = splitID[2]
+	return
+}
+
+func parseRpaasFileID_legacyV0(id string) (serviceName, instance, filename string, err error) {
 	splitID := strings.Split(id, "/")
 	if len(splitID) != 3 {
-		err = errors.New("Resource ID could not be parsed. Format should be \"service/instance/file\"")
+		err = fmt.Errorf("Resource ID could not be parsed. Legacy format: \"service/instance/file\"")
 		return
 	}
 	serviceName = splitID[0]

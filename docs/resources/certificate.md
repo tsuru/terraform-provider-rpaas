@@ -38,4 +38,13 @@ resource "rpaas_certificate" "example" {
 
 - `id` (String) The ID of this resource.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import rpaas_certificate.resource_name "service::instance::name"
+
+# example
+terraform import rpaas_certificate.mycertificate "rpaasv2-be::my-rpaas::example.com"
+```

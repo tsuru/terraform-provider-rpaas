@@ -34,6 +34,7 @@ func TestAccRpaasFile_basic(t *testing.T) {
 				Config: testAccRpaasFileConfig("custom_file.txt", "content"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::custom_file.txt"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "custom_file.txt"),
@@ -55,6 +56,7 @@ func TestAccRpaasFile_basic(t *testing.T) {
 				Config: testAccRpaasFileConfig("custom_file.txt", "changed"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::custom_file.txt"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "custom_file.txt"),
@@ -76,6 +78,7 @@ func TestAccRpaasFile_basic(t *testing.T) {
 				Config: testAccRpaasFileConfig("different.txt", "changed"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::different.txt"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "different.txt"),
@@ -118,7 +121,7 @@ func TestAccRpaasFile_import(t *testing.T) {
 				// Testing Import
 				Config:        `resource "rpaas_file" "imported" {}`,
 				ResourceName:  "rpaas_file.imported",
-				ImportStateId: "rpaasv2-be/my-rpaas/imported.txt",
+				ImportStateId: "rpaasv2-be::my-rpaas::imported.txt",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
@@ -126,6 +129,19 @@ func TestAccRpaasFile_import(t *testing.T) {
 					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
 					assert.Equal(t, "imported.txt", state.Attributes["name"])
 					assert.Equal(t, "imported content", state.Attributes["content"])
+					return nil
+				},
+			},
+			{
+				// Testing Import legacy ID
+				Config:        `resource "rpaas_file" "imported_legacy" {}`,
+				ResourceName:  "rpaas_file.imported_legacy",
+				ImportStateId: "rpaasv2-be/my-rpaas/imported.txt", // legacy id
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas::imported.txt", state.Attributes["id"])
 					return nil
 				},
 			},

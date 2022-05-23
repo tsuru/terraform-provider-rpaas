@@ -41,8 +41,8 @@ resource "rpaas_acl" "example" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import rpaas_acl.resource_name "service/instance host:port"
+terraform import rpaas_acl.resource_name "service::instance::host::port"
 
 # example
-terraform import rpaas_acl.myacl "rpaasv2-be/my-rpaas example.com:443"
+terraform import rpaas_acl.myacl "rpaasv2-be::my-rpaas::example.com::443"
 ```

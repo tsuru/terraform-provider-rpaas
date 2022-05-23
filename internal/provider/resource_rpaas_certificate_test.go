@@ -30,6 +30,7 @@ func TestAccRpaasCertificate_basic(t *testing.T) {
 				Config: testAccRpaasCertificateConfig("example.org"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::example.org"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "example.org"),
@@ -48,6 +49,7 @@ func TestAccRpaasCertificate_basic(t *testing.T) {
 				Config: testAccRpaasCertificateConfig("example.com"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::example.com"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
 					resource.TestCheckResourceAttr(resourceName, "name", "example.com"),
@@ -114,13 +116,26 @@ sM5FaDCEIJVbWjPDluxUGbVOQlFHsJs+pZv0Anf9DPwU
 			{
 				Config:        `resource "rpaas_certificate" "imported" {}`,
 				ResourceName:  "rpaas_certificate.imported",
-				ImportStateId: "rpaasv2-be/my-rpaas/import.example.com",
+				ImportStateId: "rpaasv2-be::my-rpaas::import.example.com",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
 					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
 					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
 					assert.Equal(t, "import.example.com", state.Attributes["name"])
+					return nil
+				},
+			},
+			{
+				// Testing Import legacy ID
+				Config:        `resource "rpaas_certificate" "imported_legacy" {}`,
+				ResourceName:  "rpaas_certificate.imported_legacy",
+				ImportStateId: "rpaasv2-be my-rpaas import.example.com", // legacy id
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Len(t, s, 1)
+					assert.Equal(t, "rpaasv2-be::my-rpaas::import.example.com", state.Attributes["id"])
 					return nil
 				},
 			},
