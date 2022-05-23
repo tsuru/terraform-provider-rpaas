@@ -42,4 +42,13 @@ resource "rpaas_route" "example" {
 
 - `id` (String) The ID of this resource.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import rpaas_route.resource_name "service::instance::path"
+
+# example
+terraform import rpaas_route.myroute "rpaasv2-be::my-rpaas::/"
+```

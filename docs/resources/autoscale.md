@@ -41,4 +41,13 @@ resource "rpaas_autoscale" "example" {
 
 - `id` (String) The ID of this resource.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import rpaas_autoscale.resource_name "service/instance"
+
+# example
+terraform import rpaas_autoscale.myautoscale "rpaasv2-be/my-rpaas"
+```

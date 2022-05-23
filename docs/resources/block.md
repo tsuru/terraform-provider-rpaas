@@ -82,4 +82,13 @@ resource "rpaas_block" "example_lua" {
 
 - `id` (String) The ID of this resource.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import rpaas_block.resource_name "service/instance/name"
+
+# example
+terraform import rpaas_block.myblock "rpaasv2-be/my-rpaas/http"
+```

@@ -88,7 +88,7 @@ func resourceRpaasCertificateUpsert(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("Unable to create/update certificate %s for instance %s: %v", args.Certificate, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s %s %s", serviceName, instance, args.Name))
+	d.SetId(fmt.Sprintf("%s/%s/%s", serviceName, instance, args.Name))
 	return resourceRpaasCertificateRead(ctx, d, meta)
 }
 
