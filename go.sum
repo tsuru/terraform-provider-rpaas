@@ -1345,8 +1345,8 @@ github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa h1:JlLQP1xa13a994p/A
 github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa/go.mod h1:UibOSvkMFKRe/eiwktAPAvQG8L+p8nYsECJvu3Dgw7I=
 github.com/tsuru/nginx-operator v0.10.0 h1:Apdrj6kTvkBVn2p4pHSnngo5knqm6TfFwBzYDTo1QJk=
 github.com/tsuru/nginx-operator v0.10.0/go.mod h1:0nwFM/IZA55wz4/DxpgbjUROnYTEEG225V+6rZsZU5Q=
-github.com/tsuru/rpaas-operator v0.27.9-0.20220518134753-a56e2f3fc153 h1:P0XX2KDGmqhmIzFuMUNl5bWjYS9IyAvQAtSgBsvpGKM=
-github.com/tsuru/rpaas-operator v0.27.9-0.20220518134753-a56e2f3fc153/go.mod h1:F/BYIwXe002hkpyR4yB2Piw7f9kxjtWy9SU9zFlwqV0=
+github.com/tsuru/rpaas-operator v0.27.9 h1:cXeZGv+Ekm65nSyfYA2FrxXf2U8cT6x0RrXwABvkqZM=
+github.com/tsuru/rpaas-operator v0.27.9/go.mod h1:F/BYIwXe002hkpyR4yB2Piw7f9kxjtWy9SU9zFlwqV0=
 github.com/tsuru/stern v1.20.2-0.20210928180051-1157b938dc3f h1:9dTZI6bQUVkKAsCnqaDl4V7fKAc5ErVpmX+bzevz3Cg=
 github.com/tsuru/stern v1.20.2-0.20210928180051-1157b938dc3f/go.mod h1:SUQKJ3CLsVARBwkz5z9IIL8Pj008JNj4U8eF50kkm2c=
 github.com/tsuru/tablecli v0.0.0-20180215113938-82de88f75181 h1:R1SnLQm/RZp35wa9e9nXyxy4EkEgU2v0rP4DGadrJ0g=
