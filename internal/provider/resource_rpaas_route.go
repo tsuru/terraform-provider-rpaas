@@ -125,15 +125,15 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("Unable to get block %s for instance %s: %v", path, instance, err)
 	}
 
+	// auto-fix old buggy ID
 	if path == "" {
-		// auto-fix old buggy ID
-		if len(routes) > 1 {
-			return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple routes and it is not possible to figure out which one should be used. You must resolve it manually")
-		}
-		if len(routes) == 1 {
-			path = routes[0].Path
-			d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
-		}
+		path = d.Get("path").(string) // defaults to config's value, if present
+	}
+	if path == "" && len(routes) > 1 {
+		return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple routes and it is not possible to figure out which one should be used. You must resolve it manually")
+	} else if path == "" && len(routes) == 1 {
+		path = routes[0].Path
+		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
 	}
 
 	for _, b := range routes {
@@ -146,6 +146,7 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
+	// no match
 	d.SetId("")
 	return nil
 }

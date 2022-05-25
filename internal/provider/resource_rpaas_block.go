@@ -119,16 +119,15 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("Unable to get block %s for instance %s: %v", blockName, instance, err)
 	}
 
+	// auto-fix old buggy ID
 	if blockName == "" {
-		// auto-fix old buggy ID
-		if len(blocks) > 1 {
-			return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple blocks and it is not possible to figure out which one should be used. You must resolve it manually")
-		}
-		b := blocks[0]
-		d.Set("name", b.Name)
-		d.Set("content", b.Content)
-		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, b.Name))
-		return nil
+		blockName = d.Get("name").(string) // defaults to config's value, if present
+	}
+	if blockName == "" && len(blocks) > 1 {
+		return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple blocks and it is not possible to figure out which one should be used. You must resolve it manually")
+	} else if blockName == "" && len(blocks) == 1 {
+		blockName = blocks[0].Name
+		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 	}
 
 	for _, b := range blocks {
@@ -139,6 +138,7 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
+	// no match
 	d.SetId("")
 	return nil
 }
