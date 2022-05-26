@@ -107,7 +107,6 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 	d.Set("instance", instance)
 	d.Set("service_name", serviceName)
-	d.Set("name", blockName)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -127,13 +126,13 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple blocks and it is not possible to figure out which one should be used. You must resolve it manually")
 	} else if blockName == "" && len(blocks) == 1 {
 		blockName = blocks[0].Name
-		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 	}
 
 	for _, b := range blocks {
 		if b.Name == blockName {
 			d.Set("name", b.Name)
 			d.Set("content", b.Content)
+			d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 			return nil
 		}
 	}

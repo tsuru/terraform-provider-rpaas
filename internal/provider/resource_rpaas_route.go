@@ -113,7 +113,6 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 
 	d.Set("instance", instance)
 	d.Set("service_name", serviceName)
-	d.Set("path", path)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -133,7 +132,6 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple routes and it is not possible to figure out which one should be used. You must resolve it manually")
 	} else if path == "" && len(routes) == 1 {
 		path = routes[0].Path
-		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
 	}
 
 	for _, b := range routes {
@@ -142,6 +140,7 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 			d.Set("https_only", b.HTTPSOnly)
 			d.Set("destination", b.Destination)
 			d.Set("content", b.Content)
+			d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
 			return nil
 		}
 	}
