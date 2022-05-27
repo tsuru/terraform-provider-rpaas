@@ -1,4 +1,4 @@
-resource "rpaas_file" "example_1" {
+resource "rpaas_file" "foo.txt" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
@@ -8,10 +8,18 @@ resource "rpaas_file" "example_1" {
   EOF
 }
 
-resource "rpaas_file" "example_2" {
+resource "rpaas_file" "image_1" {
+  service_name = "rpaasv2-be"
+  instance     = "my-rpaas"
+
+  name           = "image.png"
+  content_base64 = filebase64("${path.module}/image.png")
+}
+
+resource "rpaas_file" "example.txt" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
   name    = "example.txt"
-  content = file("example.txt")
+  content = file("${path.module}/example.txt")
 }

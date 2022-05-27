@@ -6,8 +6,10 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -46,9 +48,16 @@ func resourceRpaasFile() *schema.Resource {
 				Description: "Name of a persistent file in the instance filesystem",
 			},
 			"content": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Content of the persistent file in the instance filesystem",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{"content", "content_base64"},
+				Description:  "Content of the persistent file in the instance filesystem, expected to be an UTF-8 encoded string.",
+			},
+			"content_base64": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{"content", "content_base64"},
+				Description:  "Content of the persistent file in the instance filesystem, expected to be binary encoded as base64 string. (v0.2.3)",
 			},
 		},
 	}
@@ -60,7 +69,10 @@ func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta i
 	serviceName := d.Get("service_name").(string)
 	instance := d.Get("instance").(string)
 	filename := d.Get("name").(string)
-	content := d.Get("content").(string)
+	content, err := resourceRpaasFileContent(d)
+	if err != nil {
+		return diag.Errorf("Unable to read content: %v", err)
+	}
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -128,7 +140,7 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
 	d.Set("name", filename)
-	d.Set("content", string(rpaasFile.Content))
+	setResourceRpaasFileContent(d, rpaasFile.Content)
 	return nil
 }
 
@@ -158,6 +170,27 @@ func resourceRpaasFileDelete(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	return nil
+}
+
+func resourceRpaasFileContent(d *schema.ResourceData) ([]byte, error) {
+	if contentBase64, ok := d.GetOk("content_base64"); ok {
+		return base64.StdEncoding.DecodeString(contentBase64.(string))
+	}
+
+	return []byte(d.Get("content").(string)), nil
+}
+
+func setResourceRpaasFileContent(d *schema.ResourceData, content []byte) {
+	if utf8.Valid(content) {
+		if _, ok := d.GetOk("content_base64"); !ok {
+			d.Set("content", string(content))
+			d.Set("content_base64", nil)
+			return
+		}
+	}
+
+	d.Set("content", nil)
+	d.Set("content_base64", base64.StdEncoding.EncodeToString(content))
 }
 
 func parseRpaasFileID(id string) (serviceName, instance, filename string, err error) {

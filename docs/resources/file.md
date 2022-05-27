@@ -13,7 +13,7 @@ description: |-
 ## Example Usage
 
 ```terraform
-resource "rpaas_file" "example_1" {
+resource "rpaas_file" "foo.txt" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
@@ -23,12 +23,20 @@ resource "rpaas_file" "example_1" {
   EOF
 }
 
-resource "rpaas_file" "example_2" {
+resource "rpaas_file" "image_1" {
+  service_name = "rpaasv2-be"
+  instance     = "my-rpaas"
+
+  name           = "image.png"
+  content_base64 = filebase64("${path.module}/image.png")
+}
+
+resource "rpaas_file" "example.txt" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
   name    = "example.txt"
-  content = file("example.txt")
+  content = file("${path.module}/example.txt")
 }
 ```
 
@@ -37,10 +45,14 @@ resource "rpaas_file" "example_2" {
 
 ### Required
 
-- `content` (String) Content of the persistent file in the instance filesystem
 - `instance` (String) RPaaS Instance Name
 - `name` (String) Name of a persistent file in the instance filesystem
 - `service_name` (String) RPaaS Service Name
+
+### Optional
+
+- `content` (String) Content of the persistent file in the instance filesystem, expected to be an UTF-8 encoded string.
+- `content_base64` (String) Content of the persistent file in the instance filesystem, expected to be binary encoded as base64 string. (v0.2.3)
 
 ### Read-Only
 

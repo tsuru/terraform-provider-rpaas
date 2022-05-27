@@ -6,6 +6,7 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
+
+var b64Image = "iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAACXBIWXMAAAS1AAAEtQHKlkJQAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAZhJREFUOI2tkTFrU1EYhp/vpAkoxOJScXHwajuIiL03dPBHiIhjRxscVIo6FFutKBUXaSnE3CtFtDgqFrq7uVQzi+29ikNbwUmENhDu69AbiE3SVOk7nu85z3k/Dn4S3uIA4xDlII4uH5wQbQotBEll6H8lpS+Vk+fjatBsuAH0S7klPw77/1UWxOF42pe75LDlC58Xis7M1rPZEGYv0bTbr2x4LXwEnFDKUeDwdqFxp9lwJ9LF4eT41L5kcfjEjGv5Qu5h7VR5sugKA6S8tyCJRiW9amFl2JWP3tibbjI/rs6ATQjGa155tnXmrLXhTkzoRWk1OtNmksyPq7NgExjJr7T+bDfiSNuEAMXU6e1fnySZ//X5HNhNAKV2e+30jXqbcLvQWN99mGXQYBFNOyQLkmge6TqA4EPNu/qu0yVDMj+J6kC+M8CDTHK/2dVhIyve2Eon3pW+VY51k2WiezL7DfzMHnjdTQbgpNzZbsOWLaZAj4Etwd29YCfcuR5CgCOYmcTTT175+15gH9CrIQBCPw418lEv7g+w+5bLDG72lgAAAABJRU5ErkJggg=="
 
 func TestAccRpaasFile_basic(t *testing.T) {
 	testAPIClient, testAPIServer := setupTestAPIServer(t)
@@ -95,6 +98,26 @@ func TestAccRpaasFile_basic(t *testing.T) {
 					},
 				),
 			},
+			{
+				// content_base64
+				Config: testAccRpaasFileConfigExtraParam("base64.txt", `content_base64 = "aGVsbG8gd29ybGQ="`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", "base64.txt"),
+					resource.TestCheckResourceAttr(resourceName, "content_base64", "aGVsbG8gd29ybGQ="),
+					resource.TestCheckResourceAttr(resourceName, "content", ""),
+					func(s *terraform.State) error {
+						extraFiles, err := testAPIClient.ListExtraFiles(context.Background(),
+							client.ListExtraFilesArgs{Instance: "my-rpaas", ShowContent: true},
+						)
+						assert.NoError(t, err)
+						assert.Len(t, extraFiles, 1)
+						assert.Equal(t, "base64.txt", extraFiles[0].Name)
+						assert.EqualValues(t, "hello world", extraFiles[0].Content)
+						return nil
+					},
+				),
+			},
 		},
 	})
 }
@@ -103,14 +126,7 @@ func TestAccRpaasFile_import(t *testing.T) {
 	testAPIClient, testAPIServer := setupTestAPIServer(t)
 	defer testAPIServer.Stop()
 
-	if err := testAPIClient.AddExtraFiles(context.Background(),
-		client.ExtraFilesArgs{
-			Instance: "my-rpaas",
-			Files:    []types.RpaasFile{{Name: "imported.txt", Content: []byte("imported content")}},
-		},
-	); err != nil {
-		t.Errorf("Api client failed to connect: %v", err)
-	}
+	setupRpaasFilesWithClient(t, testAPIClient)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -145,8 +161,44 @@ func TestAccRpaasFile_import(t *testing.T) {
 					return nil
 				},
 			},
+			{
+				// Testing Import file with binary content (image)
+				Config:        `resource "rpaas_file" "image" {}`,
+				ResourceName:  "rpaas_file.image",
+				ImportStateId: "rpaasv2-be::my-rpaas::image.png",
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					state := s[0]
+					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
+					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
+					assert.Equal(t, "image.png", state.Attributes["name"])
+					assert.Equal(t, "", state.Attributes["content"])
+					assert.Equal(t, b64Image, state.Attributes["content_base64"])
+					return nil
+				},
+			},
 		},
 	})
+}
+
+func setupRpaasFilesWithClient(t *testing.T, testAPIClient client.Client) {
+	if err := testAPIClient.AddExtraFiles(context.Background(),
+		client.ExtraFilesArgs{
+			Instance: "my-rpaas",
+			Files:    []types.RpaasFile{{Name: "imported.txt", Content: []byte("imported content")}},
+		},
+	); err != nil {
+		t.Errorf("Api client failed to connect: %v", err)
+	}
+	image, _ := base64.StdEncoding.DecodeString(b64Image)
+	if err := testAPIClient.AddExtraFiles(context.Background(),
+		client.ExtraFilesArgs{
+			Instance: "my-rpaas",
+			Files:    []types.RpaasFile{{Name: "image.png", Content: image}},
+		},
+	); err != nil {
+		t.Errorf("Api client failed to connect: %v", err)
+	}
 }
 
 func testAccRpaasFileConfig(filename, content string) string {
@@ -160,4 +212,15 @@ resource "rpaas_file" "custom_file" {
 	EOF
 }
 `, filename, content)
+}
+
+func testAccRpaasFileConfigExtraParam(filename, param string) string {
+	return fmt.Sprintf(`
+resource "rpaas_file" "custom_file" {
+	instance     = "my-rpaas"
+	service_name = "rpaasv2-be"
+	name         = "%s"
+	%s
+}
+`, filename, param)
 }
