@@ -39,17 +39,17 @@ func resourceRpaasAutoscale() *schema.Resource {
 			},
 			"min_replicas": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				Description: "Minimum number of replicas",
 			},
 			"max_replicas": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				Description: "Maximum number of replicas",
 			},
 			"target_cpu_utilization_percentage": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				Description: "Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.",
 			},
 		},

@@ -29,12 +29,9 @@ resource "rpaas_autoscale" "example" {
 ### Required
 
 - `instance` (String) RPaaS Instance Name
-- `service_name` (String) RPaaS Service Name
-
-### Optional
-
 - `max_replicas` (Number) Maximum number of replicas
 - `min_replicas` (Number) Minimum number of replicas
+- `service_name` (String) RPaaS Service Name
 - `target_cpu_utilization_percentage` (Number) Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.
 
 ### Read-Only
