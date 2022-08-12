@@ -1,4 +1,4 @@
-resource "rpaas_file" "foo.txt" {
+resource "rpaas_file" "foo_txt" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
@@ -16,7 +16,7 @@ resource "rpaas_file" "image_1" {
   content_base64 = filebase64("${path.module}/image.png")
 }
 
-resource "rpaas_file" "example.txt" {
+resource "rpaas_file" "example_txt" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
