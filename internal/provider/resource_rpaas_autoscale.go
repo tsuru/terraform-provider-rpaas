@@ -16,9 +16,9 @@ import (
 
 func resourceRpaasAutoscale() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasAutoscaleUpdate,
+		CreateContext: resourceRpaasAutoscaleUpsert,
 		ReadContext:   resourceRpaasAutoscaleRead,
-		UpdateContext: resourceRpaasAutoscaleUpdate,
+		UpdateContext: resourceRpaasAutoscaleUpsert,
 		DeleteContext: resourceRpaasAutoscaleDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -56,8 +56,7 @@ func resourceRpaasAutoscale() *schema.Resource {
 	}
 }
 
-func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Create or Update
+func resourceRpaasAutoscaleUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	instance := d.Get("instance").(string)
@@ -85,7 +84,7 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateAutoscale(ctx, args)
+		return rpaasClient.UpdateAutoscale(ctx, args) // UpdateAutoscale is really an Upsert
 	})
 
 	if err != nil {

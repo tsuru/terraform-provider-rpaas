@@ -20,9 +20,9 @@ var validBlocks = []string{"root", "http", "server", "lua-server", "lua-worker"}
 
 func resourceRpaasBlock() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasBlockCreate,
+		CreateContext: resourceRpaasBlockUpsert,
 		ReadContext:   resourceRpaasBlockRead,
-		UpdateContext: resourceRpaasBlockCreate,
+		UpdateContext: resourceRpaasBlockUpsert,
 		DeleteContext: resourceRpaasBlockDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -66,7 +66,7 @@ func resourceRpaasBlock() *schema.Resource {
 	}
 }
 
-func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasBlockUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	instance := d.Get("instance").(string)
@@ -85,7 +85,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateBlock(ctx, args)
+		return rpaasClient.UpdateBlock(ctx, args) // UpdateBlock is really an Upsert
 	})
 
 	if err != nil {

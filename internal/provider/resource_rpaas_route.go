@@ -17,9 +17,9 @@ import (
 
 func resourceRpaasRoute() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasRouteCreate,
+		CreateContext: resourceRpaasRouteUpsert,
 		ReadContext:   resourceRpaasRouteRead,
-		UpdateContext: resourceRpaasRouteCreate,
+		UpdateContext: resourceRpaasRouteUpsert,
 		DeleteContext: resourceRpaasRouteDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -66,7 +66,7 @@ func resourceRpaasRoute() *schema.Resource {
 	}
 }
 
-func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasRouteUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	serviceName := d.Get("service_name").(string)
@@ -93,7 +93,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateRoute(ctx, args)
+		return rpaasClient.UpdateRoute(ctx, args) // UpdateRoute is really an Upsert
 	})
 	if err != nil {
 		return diag.Errorf("Unable to create/update route %s for instance %s: %v", path, instance, err)
