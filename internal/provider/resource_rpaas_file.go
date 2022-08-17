@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
 	"unicode/utf8"
 
@@ -20,9 +21,9 @@ import (
 
 func resourceRpaasFile() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasFileUpsert,
+		CreateContext: resourceRpaasFileCreate,
 		ReadContext:   resourceRpaasFileRead,
-		UpdateContext: resourceRpaasFileUpsert,
+		UpdateContext: resourceRpaasFileUpdate,
 		DeleteContext: resourceRpaasFileDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -63,7 +64,7 @@ func resourceRpaasFile() *schema.Resource {
 	}
 }
 
-func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasFileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	serviceName := d.Get("service_name").(string)
@@ -79,22 +80,72 @@ func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	rpaasFiles := []types.RpaasFile{
-		{
-			Name:    filename,
-			Content: []byte(content),
-		},
-	}
-	extraFileArgs := rpaas_client.ExtraFilesArgs{
-		Instance: instance,
-		Files:    rpaasFiles,
-	}
+	tflog.Info(ctx, "Create file", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"name":     filename,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
-		if d.IsNewResource() {
-			return rpaasClient.AddExtraFiles(ctx,
-				extraFileArgs,
-			)
+		rpaasFiles := []types.RpaasFile{
+			{
+				Name:    filename,
+				Content: []byte(content),
+			},
+		}
+		extraFileArgs := rpaas_client.ExtraFilesArgs{
+			Instance: instance,
+			Files:    rpaasFiles,
+		}
+
+		return rpaasClient.AddExtraFiles(ctx,
+			extraFileArgs,
+		)
+	})
+
+	if err != nil {
+		return diag.Errorf("Unable to create file %q for instance %s: %v", filename, instance, err)
+	}
+
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, filename))
+	return resourceRpaasFileRead(ctx, d, meta)
+}
+
+func resourceRpaasFileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
+	serviceName, instance, filename, err := parseRpaasFileID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse File ID: %v", err)
+	}
+
+	content, err := resourceRpaasFileContent(d)
+	if err != nil {
+		return diag.Errorf("Unable to read content: %v", err)
+	}
+
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
+
+	tflog.Info(ctx, "Update file", map[string]interface{}{
+		"id":       d.Id(),
+		"service":  serviceName,
+		"instance": instance,
+		"name":     filename,
+	})
+
+	err = rpaasRetry(ctx, d, func() error {
+		rpaasFiles := []types.RpaasFile{
+			{
+				Name:    filename,
+				Content: []byte(content),
+			},
+		}
+		extraFileArgs := rpaas_client.ExtraFilesArgs{
+			Instance: instance,
+			Files:    rpaasFiles,
 		}
 
 		return rpaasClient.UpdateExtraFiles(ctx,
@@ -103,10 +154,9 @@ func resourceRpaasFileUpsert(ctx context.Context, d *schema.ResourceData, meta i
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to upsert file %q for instance %s: %v", filename, instance, err)
+		return diag.Errorf("Unable to update file %q for instance %s: %v", filename, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, filename))
 	return resourceRpaasFileRead(ctx, d, meta)
 }
 
@@ -155,6 +205,13 @@ func resourceRpaasFileDelete(ctx context.Context, d *schema.ResourceData, meta i
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
+
+	tflog.Info(ctx, "Delete file", map[string]interface{}{
+		"id":       d.Id(),
+		"service":  serviceName,
+		"instance": instance,
+		"name":     filename,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.DeleteExtraFiles(ctx,

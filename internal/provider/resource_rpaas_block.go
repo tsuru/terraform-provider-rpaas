@@ -7,6 +7,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -20,9 +21,9 @@ var validBlocks = []string{"root", "http", "server", "lua-server", "lua-worker"}
 
 func resourceRpaasBlock() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasBlockUpsert,
+		CreateContext: resourceRpaasBlockCreate,
 		ReadContext:   resourceRpaasBlockRead,
-		UpdateContext: resourceRpaasBlockUpsert,
+		UpdateContext: resourceRpaasBlockUpdate,
 		DeleteContext: resourceRpaasBlockDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -66,26 +67,32 @@ func resourceRpaasBlock() *schema.Resource {
 	}
 }
 
-func resourceRpaasBlockUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
 	blockName := d.Get("name").(string)
 	content := d.Get("content").(string)
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	args := rpaas_client.UpdateBlockArgs{
-		Instance: instance,
-		Name:     blockName,
-		Content:  content,
-	}
+	tflog.Info(ctx, "Create block", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"name":     blockName,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateBlock(ctx, args) // UpdateBlock is really an Upsert
+		args := rpaas_client.UpdateBlockArgs{
+			Instance: instance,
+			Name:     blockName,
+			Content:  content,
+		}
+		return rpaasClient.UpdateBlock(ctx, args)
 	})
 
 	if err != nil {
@@ -93,6 +100,43 @@ func resourceRpaasBlockUpsert(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
+	return resourceRpaasBlockRead(ctx, d, meta)
+}
+
+func resourceRpaasBlockUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
+	serviceName, instance, blockName, err := parseRpaasBlockID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Block ID: %v", err)
+	}
+
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
+
+	content := d.Get("content").(string)
+	tflog.Info(ctx, "Update block", map[string]interface{}{
+		"id":       d.Id(),
+		"service":  serviceName,
+		"instance": instance,
+		"name":     blockName,
+	})
+
+	err = rpaasRetry(ctx, d, func() error {
+		args := rpaas_client.UpdateBlockArgs{
+			Instance: instance,
+			Name:     blockName,
+			Content:  content,
+		}
+		return rpaasClient.UpdateBlock(ctx, args)
+	})
+
+	if err != nil {
+		return diag.Errorf("Unable to update block %s for instance %s: %v", blockName, instance, err)
+	}
+
 	return resourceRpaasBlockRead(ctx, d, meta)
 }
 
@@ -152,6 +196,13 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
+
+	tflog.Info(ctx, "Delete block", map[string]interface{}{
+		"id":       d.Id(),
+		"service":  serviceName,
+		"instance": instance,
+		"name":     blockName,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{

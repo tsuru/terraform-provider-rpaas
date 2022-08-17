@@ -7,6 +7,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -17,9 +18,9 @@ import (
 
 func resourceRpaasRoute() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasRouteUpsert,
+		CreateContext: resourceRpaasRouteCreate,
 		ReadContext:   resourceRpaasRouteRead,
-		UpdateContext: resourceRpaasRouteUpsert,
+		UpdateContext: resourceRpaasRouteUpdate,
 		DeleteContext: resourceRpaasRouteDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -66,40 +67,61 @@ func resourceRpaasRoute() *schema.Resource {
 	}
 }
 
-func resourceRpaasRouteUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
+	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
+	path := d.Get("path").(string)
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	instance := d.Get("instance").(string)
-	path := d.Get("path").(string)
-	httpsOnly := d.Get("https_only").(bool)
-	args := rpaas_client.UpdateRouteArgs{
-		Instance:  instance,
-		Path:      path,
-		HTTPSOnly: httpsOnly,
-	}
-
-	if content, ok := d.GetOk("content"); ok {
-		args.Content = content.(string)
-	}
-
-	if destination, ok := d.GetOk("destination"); ok {
-		args.Destination = destination.(string)
-	}
+	tflog.Info(ctx, "Create route", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"path":     path,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateRoute(ctx, args) // UpdateRoute is really an Upsert
+		return updateRpaasRoute(ctx, d, instance, path, rpaasClient)
 	})
 	if err != nil {
-		return diag.Errorf("Unable to create/update route %s for instance %s: %v", path, instance, err)
+		return diag.Errorf("Unable to create route %s for instance %s: %v", path, instance, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
+	return resourceRpaasRouteRead(ctx, d, meta)
+}
+
+func resourceRpaasRouteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
+	serviceName, instance, path, err := parseRpaasRouteID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Route ID: %v", err)
+	}
+
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
+
+	tflog.Info(ctx, "Update route", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"path":     path,
+	})
+
+	err = rpaasRetry(ctx, d, func() error {
+		return updateRpaasRoute(ctx, d, instance, path, rpaasClient)
+	})
+	if err != nil {
+		return diag.Errorf("Unable to update route %s for instance %s: %v", path, instance, err)
+	}
+
 	return resourceRpaasRouteRead(ctx, d, meta)
 }
 
@@ -161,6 +183,12 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
+	tflog.Info(ctx, "Delete route", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"path":     path,
+	})
+
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
 			Instance: instance,
@@ -189,6 +217,23 @@ func parseRpaasRouteID(id string) (serviceName, instance, path string, err error
 	instance = splitID[1]
 	path = splitID[2]
 	return
+}
+
+func updateRpaasRoute(ctx context.Context, d *schema.ResourceData, instance, path string, rpaasClient rpaas_client.Client) error {
+	args := rpaas_client.UpdateRouteArgs{
+		Instance:  instance,
+		Path:      path,
+		HTTPSOnly: d.Get("https_only").(bool),
+	}
+
+	if content, ok := d.GetOk("content"); ok {
+		args.Content = content.(string)
+	}
+	if destination, ok := d.GetOk("destination"); ok {
+		args.Destination = destination.(string)
+	}
+
+	return rpaasClient.UpdateRoute(ctx, args)
 }
 
 func parseRpaasRouteID_legacyV0(id string) (serviceName, instance, path string, err error) {

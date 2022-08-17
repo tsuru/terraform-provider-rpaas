@@ -5,8 +5,11 @@ go 1.16
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
+	github.com/hashicorp/go-hclog v1.2.2 // indirect
+	github.com/hashicorp/terraform-plugin-log v0.7.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.20.0
 	github.com/hashicorp/yamux v0.0.0-20210707203944-259a57b3608c // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/sajari/fuzzy v1.0.0 // indirect
@@ -18,6 +21,7 @@ require (
 	github.com/tsuru/rpaas-operator v0.27.9
 	github.com/tsuru/tablecli v0.0.0-20180215113938-82de88f75181 // indirect
 	github.com/tsuru/tsuru v0.0.0-20180820205921-0e7f7f02eac5
+	golang.org/x/sys v0.0.0-20220817070843-5a390386f1f2 // indirect
 	istio.io/pkg v0.0.0-20210322140956-5892a3b28d3e
 	k8s.io/apimachinery v0.22.0
 )

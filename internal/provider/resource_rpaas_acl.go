@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strconv"
 	"strings"
 
@@ -61,6 +62,13 @@ func resourceRpaasACLCreate(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
+
+	tflog.Info(ctx, "Create ACL", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"host":     host,
+		"port":     port,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.AddAccessControlList(ctx, instance, host, port)
@@ -122,6 +130,14 @@ func resourceRpaasACLDelete(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
+
+	tflog.Info(ctx, "Delete ACL", map[string]interface{}{
+		"id":       d.Id(),
+		"service":  serviceName,
+		"instance": instance,
+		"host":     host,
+		"port":     port,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.RemoveAccessControlList(ctx, instance, host, port)
