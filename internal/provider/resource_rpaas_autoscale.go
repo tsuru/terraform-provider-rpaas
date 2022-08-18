@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -16,9 +17,9 @@ import (
 
 func resourceRpaasAutoscale() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasAutoscaleUpsert,
+		CreateContext: resourceRpaasAutoscaleCreate,
 		ReadContext:   resourceRpaasAutoscaleRead,
-		UpdateContext: resourceRpaasAutoscaleUpsert,
+		UpdateContext: resourceRpaasAutoscaleUpdate,
 		DeleteContext: resourceRpaasAutoscaleDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -56,7 +57,7 @@ func resourceRpaasAutoscale() *schema.Resource {
 	}
 }
 
-func resourceRpaasAutoscaleUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	instance := d.Get("instance").(string)
@@ -67,28 +68,22 @@ func resourceRpaasAutoscaleUpsert(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	args := rpaas_client.UpdateAutoscaleArgs{
-		Instance: instance,
-	}
+	args := buildRpaasUpdateAutoscaleArgs(d, instance)
 
-	if v, ok := d.GetOk("min_replicas"); ok {
-		args.MinReplicas = int32ToPointer(int32(v.(int)))
-	}
-
-	if v, ok := d.GetOk("max_replicas"); ok {
-		args.MaxReplicas = int32ToPointer(int32(v.(int)))
-	}
-
-	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
-		args.CPU = int32ToPointer(int32(v.(int)))
-	}
+	tflog.Info(ctx, "Create rpaas_autoscale", map[string]interface{}{
+		"service":                           serviceName,
+		"instance":                          instance,
+		"min_replicas":                      args.MinReplicas,
+		"max_replicas":                      args.MaxReplicas,
+		"target_cpu_utilization_percentage": args.CPU,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.UpdateAutoscale(ctx, args) // UpdateAutoscale is really an Upsert
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to set autoscale for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to create autoscale for instance %s: %v", instance, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s", serviceName, instance))
@@ -131,6 +126,40 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 	return nil
 }
 
+func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
+	serviceName, instance, err := parseRpaasInstanceID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Autoscale ID: %v", err)
+	}
+
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
+
+	args := buildRpaasUpdateAutoscaleArgs(d, instance)
+
+	tflog.Info(ctx, "update rpaas_autoscale", map[string]interface{}{
+		"service":                           serviceName,
+		"instance":                          instance,
+		"min_replicas":                      args.MinReplicas,
+		"max_replicas":                      args.MaxReplicas,
+		"target_cpu_utilization_percentage": args.CPU,
+	})
+
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.UpdateAutoscale(ctx, args)
+	})
+
+	if err != nil {
+		return diag.Errorf("Unable to update autoscale for instance %s: %v", instance, err)
+	}
+
+	return resourceRpaasAutoscaleRead(ctx, d, meta)
+}
+
 func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
@@ -143,6 +172,11 @@ func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
+
+	tflog.Info(ctx, "Delete rpaas_autoscale", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.RemoveAutoscale(ctx, rpaas_client.RemoveAutoscaleArgs{
@@ -160,4 +194,23 @@ func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, m
 
 func int32ToPointer(x int32) *int32 {
 	return &x
+}
+
+func buildRpaasUpdateAutoscaleArgs(d *schema.ResourceData, instance string) rpaas_client.UpdateAutoscaleArgs {
+	args := rpaas_client.UpdateAutoscaleArgs{
+		Instance: instance,
+	}
+	if v, ok := d.GetOk("min_replicas"); ok {
+		args.MinReplicas = int32ToPointer(int32(v.(int)))
+	}
+
+	if v, ok := d.GetOk("max_replicas"); ok {
+		args.MaxReplicas = int32ToPointer(int32(v.(int)))
+	}
+
+	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
+		args.CPU = int32ToPointer(int32(v.(int)))
+	}
+
+	return args
 }
