@@ -7,9 +7,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -18,9 +18,9 @@ import (
 
 func resourceRpaasCertificate() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceRpaasCertificateUpsert,
+		CreateContext: resourceRpaasCertificateCreate,
 		ReadContext:   resourceRpaasCertificateRead,
-		UpdateContext: resourceRpaasCertificateUpsert,
+		UpdateContext: resourceRpaasCertificateUpdate,
 		DeleteContext: resourceRpaasCertificateDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -60,11 +60,12 @@ func resourceRpaasCertificate() *schema.Resource {
 	}
 }
 
-func resourceRpaasCertificateUpsert(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasCertificateCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
+	certName := d.Get("name").(string)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -73,36 +74,41 @@ func resourceRpaasCertificateUpsert(ctx context.Context, d *schema.ResourceData,
 
 	args := rpaas_client.UpdateCertificateArgs{
 		Instance:    instance,
-		Name:        d.Get("name").(string),
+		Name:        certName,
 		Certificate: d.Get("certificate").(string),
 		Key:         d.Get("key").(string),
 	}
-	log.Printf("[DEBUG] creating certificate for instance %s, certificate name %s", args.Instance, args.Certificate)
+
+	tflog.Info(ctx, "Create rpaas_certificate", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"name":     certName,
+	})
 
 	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateCertificate(ctx, args)
+		return rpaasClient.UpdateCertificate(ctx, args) // UpdateCertificate is really an upsert
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create/update certificate %s for instance %s: %v", args.Certificate, instance, err)
+		return diag.Errorf("Unable to create certificate %s for instance %s: %v", certName, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, args.Name))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, certName))
 	return resourceRpaasCertificateRead(ctx, d, meta)
 }
 
 func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, name, err := parseRpaasCertificateID(d.Id())
+	serviceName, instance, certName, err := parseRpaasCertificateID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse Certificate ID: %v", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, name))
+	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, certName))
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
-	d.Set("name", name)
+	d.Set("name", certName)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -119,7 +125,7 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	for _, certificate := range info.Certificates {
-		if certificate.Name == name {
+		if certificate.Name == certName {
 			return nil
 		}
 	}
@@ -129,26 +135,69 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceRpaasCertificateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceRpaasCertificateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
-	name := d.Get("name").(string)
+	serviceName, instance, certName, err := parseRpaasCertificateID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Certificate ID: %v", err)
+	}
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
+	args := rpaas_client.UpdateCertificateArgs{
+		Instance:    instance,
+		Name:        certName,
+		Certificate: d.Get("certificate").(string),
+		Key:         d.Get("key").(string),
+	}
+
+	tflog.Info(ctx, "Update rpaas_certificate", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"name":     certName,
+	})
+
+	err = rpaasRetry(ctx, d, func() error {
+		return rpaasClient.UpdateCertificate(ctx, args)
+	})
+
+	if err != nil {
+		return diag.Errorf("Unable to update certificate %s for instance %s: %v", certName, instance, err)
+	}
+
+	return resourceRpaasCertificateRead(ctx, d, meta)
+}
+
+func resourceRpaasCertificateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	provider := meta.(*rpaasProvider)
+
+	instance := d.Get("instance").(string)
+	serviceName := d.Get("service_name").(string)
+	certName := d.Get("name").(string)
+	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
+	if err != nil {
+		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
+	}
+
+	tflog.Info(ctx, "Delete rpaas_certificate", map[string]interface{}{
+		"service":  serviceName,
+		"instance": instance,
+		"name":     certName,
+	})
+
 	err = rpaasRetry(ctx, d, func() error {
 		return rpaasClient.DeleteCertificate(ctx, rpaas_client.DeleteCertificateArgs{
 			Instance: instance,
-			Name:     name,
+			Name:     certName,
 		})
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to remove certificate for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to remove certificate %s for instance %s: %v", certName, instance, err)
 	}
 	return nil
 }
