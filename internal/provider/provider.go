@@ -35,6 +35,12 @@ func Provider() *schema.Provider {
 				Description: "Token to authenticate on tsuru API (optional)",
 				Optional:    true,
 			},
+			"request_timeout": {
+				Type:        schema.TypeString,
+				Description: "A duration string controlling the Timeout for the HTTP client. Defaults to '30s' (optional)",
+				Default:     "30s",
+				Optional:    true,
+			},
 			"skip_cert_verification": {
 				Type:        schema.TypeBool,
 				Description: "Disable certificate verification",
@@ -100,8 +106,16 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 
 	var cli rpaas_client.Client
 	rpaasClientOptions := rpaas_client.ClientOptions{
-		Timeout:            10 * time.Minute,
+		Timeout:            30 * time.Second,
 		InsecureSkipVerify: d.Get("skip_cert_verification").(bool),
+	}
+
+	if v, ok := d.GetOk("request_timeout"); ok {
+		var err error
+		rpaasClientOptions.Timeout, err = time.ParseDuration(v.(string))
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 	}
 
 	providerSkipTsuruPassthrough := os.Getenv("PROVIDER_SKIP_TSURU_PASSTHROUGH")

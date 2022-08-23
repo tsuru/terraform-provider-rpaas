@@ -77,5 +77,6 @@ resource "rpaas_route" "be_route_custom" {
 ### Optional
 
 - `host` (String) Target to tsuru API
+- `request_timeout` (String) A duration string controlling the Timeout for the HTTP client. Defaults to '30s' (optional)
 - `skip_cert_verification` (Boolean) Disable certificate verification
 - `token` (String) Token to authenticate on tsuru API (optional)
