@@ -100,7 +100,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 
 	var cli rpaas_client.Client
 	rpaasClientOptions := rpaas_client.ClientOptions{
-		Timeout:            10 * time.Second,
+		Timeout:            10 * time.Minute,
 		InsecureSkipVerify: d.Get("skip_cert_verification").(bool),
 	}
 
