@@ -58,8 +58,13 @@ func resourceRpaasAutoscale() *schema.Resource {
 			},
 			"target_cpu_utilization_percentage": {
 				Type:        schema.TypeInt,
-				Required:    true,
+				Optional:    true,
 				Description: "Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.",
+			},
+			"target_requests_per_second": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Target average of HTTP requests per second over the serving pods",
 			},
 		},
 	}
@@ -84,6 +89,7 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 		"min_replicas":                      args.MinReplicas,
 		"max_replicas":                      args.MaxReplicas,
 		"target_cpu_utilization_percentage": args.CPU,
+		"target_requests_per_second":        args.RPS,
 	})
 
 	err = rpaasRetry(ctx, d, func() error {
@@ -131,6 +137,10 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 		d.Set("target_cpu_utilization_percentage", *autoscale.CPU)
 	}
 
+	if autoscale.RPS != nil {
+		d.Set("target_requests_per_second", *autoscale.RPS)
+	}
+
 	return nil
 }
 
@@ -155,6 +165,7 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 		"min_replicas":                      args.MinReplicas,
 		"max_replicas":                      args.MaxReplicas,
 		"target_cpu_utilization_percentage": args.CPU,
+		"target_requests_per_second":        args.RPS,
 	})
 
 	err = rpaasRetry(ctx, d, func() error {
@@ -218,6 +229,10 @@ func buildRpaasUpdateAutoscaleArgs(d *schema.ResourceData, instance string) rpaa
 
 	if v, ok := d.GetOk("target_cpu_utilization_percentage"); ok {
 		args.CPU = int32ToPointer(int32(v.(int)))
+	}
+
+	if v, ok := d.GetOk("target_requests_per_second"); ok {
+		args.RPS = int32ToPointer(int32(v.(int)))
 	}
 
 	return args

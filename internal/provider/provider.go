@@ -7,6 +7,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sirupsen/logrus"
 	"github.com/tsuru/tsuru/cmd"
-	"istio.io/pkg/log"
 
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
@@ -76,7 +76,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
 	if err == nil {
 		logger.Out = file
 	} else {
-		log.Info("Failed to log to file, using default stderr")
+		log.Print("Failed to log to file, using default stderr")
 	}
 
 	host := d.Get("host").(string)

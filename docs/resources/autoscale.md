@@ -32,10 +32,11 @@ resource "rpaas_autoscale" "example" {
 - `max_replicas` (Number) Maximum number of replicas
 - `min_replicas` (Number) Minimum number of replicas
 - `service_name` (String) RPaaS Service Name
-- `target_cpu_utilization_percentage` (Number) Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.
 
 ### Optional
 
+- `target_cpu_utilization_percentage` (Number) Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.
+- `target_requests_per_second` (Number) Target average of HTTP requests per second over the serving pods
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only

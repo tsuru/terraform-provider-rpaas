@@ -12,8 +12,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func TestAccRpaasAutoscale_basic(t *testing.T) {
@@ -38,14 +40,19 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "min_replicas", "10"),
 					resource.TestCheckResourceAttr(resourceName, "max_replicas", "50"),
 					resource.TestCheckResourceAttr(resourceName, "target_cpu_utilization_percentage", "60"),
+					resource.TestCheckResourceAttr(resourceName, "target_requests_per_second", "100"),
 					func(s *terraform.State) error {
-						autoscale, err := testAPIClient.GetAutoscale(context.Background(), client.GetAutoscaleArgs{
-							Instance: "my-rpaas",
-						})
-						assert.NoError(t, err)
-						assert.EqualValues(t, 10, *autoscale.MinReplicas)
-						assert.EqualValues(t, 50, *autoscale.MaxReplicas)
-						assert.EqualValues(t, 60, *autoscale.CPU)
+						autoscale, err := testAPIClient.GetAutoscale(context.Background(), client.GetAutoscaleArgs{Instance: "my-rpaas"})
+						if assert.NoError(t, err) {
+							return err
+						}
+
+						assert.Equal(t, &types.Autoscale{
+							MinReplicas: int32ToPointer(10),
+							MaxReplicas: int32ToPointer(50),
+							CPU:         int32ToPointer(60),
+							RPS:         int32ToPointer(100),
+						}, autoscale)
 						return nil
 					},
 				),
@@ -61,14 +68,19 @@ func TestAccRpaasAutoscale_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "min_replicas", "1"), //changed
 					resource.TestCheckResourceAttr(resourceName, "max_replicas", "50"),
 					resource.TestCheckResourceAttr(resourceName, "target_cpu_utilization_percentage", "60"),
+					resource.TestCheckResourceAttr(resourceName, "target_requests_per_second", "100"),
 					func(s *terraform.State) error {
-						autoscale, err := testAPIClient.GetAutoscale(context.Background(), client.GetAutoscaleArgs{
-							Instance: "my-rpaas",
-						})
-						assert.NoError(t, err)
-						assert.EqualValues(t, 1, *autoscale.MinReplicas)
-						assert.EqualValues(t, 50, *autoscale.MaxReplicas)
-						assert.EqualValues(t, 60, *autoscale.CPU)
+						autoscale, err := testAPIClient.GetAutoscale(context.Background(), client.GetAutoscaleArgs{Instance: "my-rpaas"})
+						if assert.NoError(t, err) {
+							return err
+						}
+
+						assert.Equal(t, &types.Autoscale{
+							MinReplicas: int32ToPointer(1),
+							MaxReplicas: int32ToPointer(50),
+							CPU:         int32ToPointer(60),
+							RPS:         int32ToPointer(100),
+						}, autoscale)
 						return nil
 					},
 				),
@@ -81,16 +93,16 @@ func TestAccRpaasAutoscale_import(t *testing.T) {
 	testAPIClient, testAPIServer := setupTestAPIServer(t)
 	defer testAPIServer.Stop()
 
-	if err := testAPIClient.UpdateAutoscale(context.Background(),
+	err := testAPIClient.UpdateAutoscale(context.Background(),
 		client.UpdateAutoscaleArgs{
 			Instance:    "my-rpaas",
 			MinReplicas: int32ToPointer(1),
 			MaxReplicas: int32ToPointer(5),
 			CPU:         int32ToPointer(50),
+			RPS:         int32ToPointer(500),
 		},
-	); err != nil {
-		t.Errorf("Api client failed to connect: %v", err)
-	}
+	)
+	require.NoError(t, err)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -110,6 +122,7 @@ func TestAccRpaasAutoscale_import(t *testing.T) {
 					assert.Equal(t, "1", state.Attributes["min_replicas"])
 					assert.Equal(t, "5", state.Attributes["max_replicas"])
 					assert.Equal(t, "50", state.Attributes["target_cpu_utilization_percentage"])
+					assert.Equal(t, "500", state.Attributes["target_requests_per_second"])
 					return nil
 				},
 			},
@@ -140,6 +153,7 @@ resource "rpaas_autoscale" "be_autoscale" {
 	max_replicas = 50
 
 	target_cpu_utilization_percentage = 60
+	target_requests_per_second        = 100
 }
 `, min_replicas)
 }
