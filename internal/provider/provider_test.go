@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -98,6 +99,17 @@ func fakeRuntimeObjects() []runtime.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-rpaas",
 				Namespace: "rpaasv2",
+			},
+		},
+		&cmv1.ClusterIssuer{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "my-custom-issuer",
+			},
+			Spec: cmv1.IssuerSpec{
+				IssuerConfig: cmv1.IssuerConfig{
+					SelfSigned: &cmv1.SelfSignedIssuer{},
+				},
 			},
 		},
 	}

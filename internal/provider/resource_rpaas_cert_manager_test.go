@@ -28,13 +28,13 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasCertManagerConfig("my-custom-issuer.ClusterIssuer.example.com", `["*.example.com", "my-instance.test"]`),
+				Config: testAccRpaasCertManagerConfig("my-custom-issuer", `["*.example.com", "my-instance.test"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer.ClusterIssuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
-					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer.ClusterIssuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer"),
 					resource.TestCheckResourceAttr(resourceName, "dns_names.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "dns_names.0", "*.example.com"),
 					resource.TestCheckResourceAttr(resourceName, "dns_names.1", "my-instance.test"),
@@ -42,9 +42,9 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 						certManagers, err := testAPIClient.ListCertManagerRequests(context.Background(), "my-rpaas")
 						assert.NoError(t, err)
 						assert.Len(t, certManagers, 1)
-						certManager, found := findCertManagerRequestByIssuer(certManagers, "my-custom-issuer.ClusterIssuer.example.com")
+						certManager, found := findCertManagerRequestByIssuer(certManagers, "my-custom-issuer")
 						assert.True(t, found)
-						assert.Equal(t, "my-custom-issuer.ClusterIssuer.example.com", certManager.Issuer)
+						assert.Equal(t, "my-custom-issuer", certManager.Issuer)
 						assert.EqualValues(t, []string{"*.example.com", "my-instance.test"}, certManager.DNSNames)
 						return nil
 					},
@@ -52,26 +52,25 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 			},
 			{
 				// Testing Update
-				Config: testAccRpaasCertManagerConfig("my-custom-issuer.ClusterIssuer.example.com", `["my-instance.test"]`),
+				Config: testAccRpaasCertManagerConfig("my-custom-issuer", `["my-instance.test"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer.ClusterIssuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
-					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer.ClusterIssuer.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer"),
 					resource.TestCheckResourceAttr(resourceName, "dns_names.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "dns_names.0", "my-instance.test"),
 					func(s *terraform.State) error {
 						certManagers, err := testAPIClient.ListCertManagerRequests(context.Background(), "my-rpaas")
 						assert.NoError(t, err)
 						assert.Len(t, certManagers, 1)
-						certManager, found := findCertManagerRequestByIssuer(certManagers, "my-custom-issuer.ClusterIssuer.example.com")
+						certManager, found := findCertManagerRequestByIssuer(certManagers, "my-custom-issuer")
 						assert.True(t, found)
-						assert.Equal(t, "my-custom-issuer.ClusterIssuer.example.com", certManager.Issuer)
+						assert.Equal(t, "my-custom-issuer", certManager.Issuer)
 						assert.EqualValues(t, []string{"my-instance.test"}, certManager.DNSNames)
 						return nil
-					},
-				),
+					}),
 			},
 		},
 	})
@@ -85,7 +84,7 @@ func TestAccRpaasCertManager_import(t *testing.T) {
 		client.UpdateCertManagerArgs{
 			Instance: "my-rpaas",
 			CertManager: types.CertManager{
-				Issuer:      "issuer.cluster.local",
+				Issuer:      "my-custom-issuer",
 				DNSNames:    []string{"dns1.example.com", "dns2.example.com", "dns3.example.com"},
 				IPAddresses: []string{"10.10.10.10", "192.168.90.90"}, // ignored on this provider
 			},
@@ -103,13 +102,13 @@ func TestAccRpaasCertManager_import(t *testing.T) {
 			{
 				Config:        `resource "rpaas_cert_manager" "imported" {}`,
 				ResourceName:  "rpaas_cert_manager.imported",
-				ImportStateId: "rpaasv2-be::my-rpaas::issuer.cluster.local",
+				ImportStateId: "rpaasv2-be::my-rpaas::my-custom-issuer",
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
 					assert.Equal(t, "rpaasv2-be", state.Attributes["service_name"])
 					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
-					assert.Equal(t, "issuer.cluster.local", state.Attributes["issuer"])
+					assert.Equal(t, "my-custom-issuer", state.Attributes["issuer"])
 					assert.Equal(t, "3", state.Attributes["dns_names.#"])
 					assert.Equal(t, "dns1.example.com", state.Attributes["dns_names.0"])
 					assert.Equal(t, "dns2.example.com", state.Attributes["dns_names.1"])
@@ -121,12 +120,12 @@ func TestAccRpaasCertManager_import(t *testing.T) {
 			{
 				Config:        `resource "rpaas_cert_manager" "imported_legacy" {}`,
 				ResourceName:  "rpaas_cert_manager.imported_legacy",
-				ImportStateId: "rpaasv2-be my-rpaas issuer.cluster.local", // legacy ID
+				ImportStateId: "rpaasv2-be my-rpaas my-custom-issuer", // legacy ID
 				ImportState:   true,
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					state := s[0]
 					assert.Len(t, s, 1)
-					assert.Equal(t, "rpaasv2-be::my-rpaas::issuer.cluster.local", state.Attributes["id"])
+					assert.Equal(t, "rpaasv2-be::my-rpaas::my-custom-issuer", state.Attributes["id"])
 					return nil
 				},
 			},
