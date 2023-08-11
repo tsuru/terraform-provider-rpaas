@@ -5,6 +5,8 @@ BINARY=terraform-provider-${NAME}
 VERSION=$(shell git describe --tags $(git rev-list --tags --max-count=1) | tr -d v)
 OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
 
+TFPLUGINDOCS_VERSION ?= v0.16.0
+
 default: lint test build install
 
 build:
@@ -41,5 +43,5 @@ debug_test:
 	TF_LOG=debug make test
 
 generate-docs:
-	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.8.1
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@$(TFPLUGINDOCS_VERSION)
 	go generate
