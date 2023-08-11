@@ -8,7 +8,7 @@ OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
 default: install
 
 build:
-	go build -o ${BINARY}
+	CGO_ENABLED=0 go build -ldflags="-X github.com/tsuru/terraform-provider-rpaas/internal/provider.Version=$(VERSION)" -o ${BINARY}
 
 release:
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_darwin_amd64

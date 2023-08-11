@@ -76,7 +76,10 @@ resource "rpaas_route" "be_route_custom" {
 
 ### Optional
 
-- `host` (String) Target to tsuru API
-- `request_timeout` (String) A duration string controlling the Timeout for the HTTP client. Defaults to '30s' (optional)
-- `skip_cert_verification` (Boolean) Disable certificate verification
-- `token` (String) Token to authenticate on tsuru API (optional)
+- `http_timeout_in_seconds` (Number) Timeout in seconds a HTTP request can take. Zero means no limit.
+- `rpaas_password` (String) Password to authentication on RPaaS API
+- `rpaas_url` (String) URL address for RPaaS API
+- `rpaas_user` (String) Username to authenticate on RPaaS API
+- `skip_cert_verification` (Boolean) Whether should skip certificate verification during TLS protocol.
+- `tsuru_target` (String) URL address for Tsuru API
+- `tsuru_token` (String) Authentication token for Tsuru API

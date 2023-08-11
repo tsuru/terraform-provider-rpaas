@@ -20,6 +20,13 @@ resource "rpaas_autoscale" "example" {
   min_replicas                      = 3
   max_replicas                      = 10
   target_cpu_utilization_percentage = 50
+  target_requests_per_second        = 500
+
+  scheduled_window {
+    min_replicas = 5
+    start        = "00 20 * * 2"
+    end          = "00 01 * * 3"
+  }
 }
 ```
 
@@ -35,23 +42,22 @@ resource "rpaas_autoscale" "example" {
 
 ### Optional
 
+- `scheduled_window` (Block List) Scheduled windows are recurring (or not) time windows where the instance can scale in/out your min replicas regardless of traffic or resource utilization. (see [below for nested schema](#nestedblock--scheduled_window))
 - `target_cpu_utilization_percentage` (Number) Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.
 - `target_requests_per_second` (Number) Target average of HTTP requests per second over the serving pods
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--timeouts"></a>
-### Nested Schema for `timeouts`
+<a id="nestedblock--scheduled_window"></a>
+### Nested Schema for `scheduled_window`
 
-Optional:
+Required:
 
-- `create` (String)
-- `delete` (String)
-- `read` (String)
-- `update` (String)
+- `end` (String) An Cron expression defining the end of the scheduled window. Example: `00 00 * * * 1-5`.
+- `min_replicas` (Number) Min number of running pods while this window is active. It cannot be greater than `max_replicas`.
+- `start` (String) An Cron expression defining the start of the scheduled window. Example: `00 20 * * * 1-5`.
 
 ## Import
 

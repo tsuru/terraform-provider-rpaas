@@ -21,60 +21,77 @@ import (
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	"github.com/tsuru/rpaas-operator/pkg/web"
 	"github.com/tsuru/rpaas-operator/pkg/web/target"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var testAccProvider *schema.Provider
 var testAccProviderFactories = map[string]func() (*schema.Provider, error){
 	"rpaas": func() (*schema.Provider, error) {
-		return testAccProvider, nil
+		return Provider(), nil
 	},
-}
-
-func init() {
-	testAccProvider = Provider()
 }
 
 func TestProvider(t *testing.T) {
 	provider := Provider()
-	if err := provider.InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
+	require.NoError(t, provider.InternalValidate(), "failed to validate internal provider")
+}
+
+func setupTestRpaasServer(t *testing.T) (*web.Api, *rpaasProvider) {
+	t.Helper()
+
+	address := fmt.Sprintf("127.0.0.1:19%03d", rand.Intn(999))
+	serverURL := fmt.Sprintf("http://%s", address)
+
+	t.Setenv("RPAAS_URL", serverURL)
+	t.Setenv("RPAAS_USER", "admin")
+	t.Setenv("RPAAS_PASSWORD", "admin")
+
+	factory, err := target.NewFakeServerFactory(fakeRuntimeObjects())
+	require.NoError(t, err, "failed to create factory")
+
+	server, err := web.NewWithTargetFactory(factory, address, "", time.Second, make(chan struct{}, 1))
+	require.NoError(t, err, "could not create fake RPaaS API")
+
+	go func() {
+		nerr := server.StartWithOptions(web.APIServerStartOptions{
+			ConfigEnableCertManager: true,
+			DiscardLogging:          true,
+		})
+		require.NoError(t, nerr, "failed to start fake RPaaS web server")
+	}()
+
+	err = waitForOkStatus(fmt.Sprintf("%s/healthcheck", serverURL))
+	require.NoError(t, err, "Failed connect to the fake RPaaS API")
+
+	providerOpts := &ProviderConfigOptions{
+		URL:      serverURL,
+		Username: "admin",
+		Password: "admin",
 	}
+
+	legacyClient, err := getLegacyClient(providerOpts)
+	require.NoError(t, err)
+
+	provider := &rpaasProvider{
+		RpaasClient: legacyClient,
+		opts:        providerOpts,
+	}
+
+	return server, provider
 }
 
 func setupTestAPIServer(t *testing.T) (client.Client, *web.Api) {
-	apiServerListen := fmt.Sprintf("127.0.0.1:19%03d", rand.Intn(999))
-	os.Setenv("RPAAS_TARGET", "http://"+apiServerListen)
-	os.Setenv("TSURU_TARGET", "http://"+apiServerListen)
-	os.Setenv("TSURU_TOKEN", "asdf")
-	os.Setenv("PROVIDER_SKIP_TSURU_PASSTHROUGH", "true")
-
-	factory, _ := target.NewFakeServerFactory(fakeRuntimeObjects())
-	apiServer, err := web.NewWithTargetFactory(factory, apiServerListen, "", 2*time.Second, make(chan struct{}))
-	if err != nil {
-		t.Errorf("Fail to create the api")
-	}
-	go apiServer.StartWithOptions(web.APIServerStartOptions{
-		DiscardLogging:          true,
-		ConfigEnableCertManager: true,
-	})
-
-	testAPIClient, err := client.NewClient("http://"+apiServerListen, "", "")
-	if err != nil {
-		t.Errorf("failed to create new rpaas client")
-	}
-
-	if err := waitForOkStatus("http://" + apiServerListen + "/healthcheck"); err != nil {
-		t.Errorf("Failed connect to the API Server: %v", err)
-	}
-
-	return testAPIClient, apiServer
+	t.Helper()
+	server, provider := setupTestRpaasServer(t)
+	return provider.RpaasClient, server
 }
 
 func testAccPreCheck(t *testing.T) {
-	tsuruTarget := os.Getenv("TSURU_TARGET")
-	require.Contains(t, tsuruTarget, "http://127.0.0.1:")
+	require.Contains(t, os.Getenv("RPAAS_URL"), "http://127.0.0.1:19")
+
+	_, found := os.LookupEnv("RPAAS_TARGET")
+	require.False(t, found, "Should not set the TSURU_TARGET env var")
 }
 
 func testAccResourceExists(resourceName string) resource.TestCheckFunc {
