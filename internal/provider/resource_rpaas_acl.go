@@ -3,13 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func resourceRpaasACL() *schema.Resource {
@@ -20,14 +21,6 @@ func resourceRpaasACL() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Read:   schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -78,8 +71,8 @@ func resourceRpaasACLCreate(ctx context.Context, d *schema.ResourceData, meta in
 		"port":     port,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.AddAccessControlList(ctx, instance, host, port)
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		return nil, rpaasClient.AddAccessControlList(ctx, instance, host, port)
 	})
 
 	if err != nil {
@@ -105,7 +98,18 @@ func resourceRpaasACLRead(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	acls, err := rpaasClient.ListAccessControlList(ctx, instance)
+	var acls []types.AllowedUpstream
+
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		a, nerr := rpaasClient.ListAccessControlList(ctx, instance)
+		if nerr != nil {
+			return nil, nil
+		}
+
+		acls = a
+		return nil, nil
+	})
+
 	if err != nil {
 		return diag.Errorf("Unable to list ACL for instance %s: %v", instance, err)
 	}
@@ -147,8 +151,8 @@ func resourceRpaasACLDelete(ctx context.Context, d *schema.ResourceData, meta in
 		"port":     port,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.RemoveAccessControlList(ctx, instance, host, port)
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
+		return nil, rpaasClient.RemoveAccessControlList(ctx, instance, host, port)
 	})
 
 	if err != nil {

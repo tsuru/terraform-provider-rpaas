@@ -7,14 +7,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func resourceRpaasRoute() *schema.Resource {
@@ -26,14 +26,6 @@ func resourceRpaasRoute() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Read:   schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -93,9 +85,10 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 		"path":     path,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return updateRpaasRoute(ctx, d, instance, path, rpaasClient)
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		return nil, updateRpaasRoute(ctx, d, instance, path, rpaasClient)
 	})
+
 	if err != nil {
 		return diag.Errorf("Unable to create route %s for instance %s: %v", path, instance, err)
 	}
@@ -123,9 +116,10 @@ func resourceRpaasRouteUpdate(ctx context.Context, d *schema.ResourceData, meta 
 		"path":     path,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return updateRpaasRoute(ctx, d, instance, path, rpaasClient)
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
+		return nil, updateRpaasRoute(ctx, d, instance, path, rpaasClient)
 	})
+
 	if err != nil {
 		return diag.Errorf("Unable to update route %s for instance %s: %v", path, instance, err)
 	}
@@ -149,7 +143,18 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	routes, err := rpaasClient.ListRoutes(ctx, rpaas_client.ListRoutesArgs{Instance: instance})
+	var routes []types.Route
+
+	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+		r, nerr := rpaasClient.ListRoutes(ctx, rpaas_client.ListRoutesArgs{Instance: instance})
+		if nerr != nil {
+			return nil, nerr
+		}
+
+		routes = r
+		return nil, nil
+	})
+
 	if err != nil {
 		return diag.Errorf("Unable to get block %s for instance %s: %v", path, instance, err)
 	}
@@ -158,6 +163,7 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 	if path == "" {
 		path = d.Get("path").(string) // defaults to config's value, if present
 	}
+
 	if path == "" && len(routes) > 1 {
 		return diag.Errorf("This resource was created with a old buggy version of the provider. There are multiple routes and it is not possible to figure out which one should be used. You must resolve it manually")
 	} else if path == "" && len(routes) == 1 {
@@ -197,8 +203,8 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 		"path":     path,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
+		return nil, rpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
 			Instance: instance,
 			Path:     path,
 		})
@@ -207,6 +213,7 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 	if err != nil {
 		return diag.Errorf("Unable to remove route for instance %s: %v", instance, err)
 	}
+
 	return nil
 }
 

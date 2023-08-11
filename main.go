@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+
 	"github.com/tsuru/terraform-provider-rpaas/internal/provider"
 )
 

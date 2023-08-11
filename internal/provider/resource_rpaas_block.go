@@ -7,15 +7,15 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
+	rpaastypes "github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 var validBlocks = []string{"root", "http", "server", "lua-server", "lua-worker"}
@@ -29,14 +29,6 @@ func resourceRpaasBlock() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Read:   schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -94,13 +86,12 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 		"name":     blockName,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		args := rpaas_client.UpdateBlockArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		return nil, rpaasClient.UpdateBlock(ctx, rpaas_client.UpdateBlockArgs{
 			Instance: instance,
 			Name:     blockName,
 			Content:  content,
-		}
-		return rpaasClient.UpdateBlock(ctx, args)
+		})
 	})
 
 	if err != nil {
@@ -132,13 +123,12 @@ func resourceRpaasBlockUpdate(ctx context.Context, d *schema.ResourceData, meta 
 		"name":     blockName,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		args := rpaas_client.UpdateBlockArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
+		return nil, rpaasClient.UpdateBlock(ctx, rpaas_client.UpdateBlockArgs{
 			Instance: instance,
 			Name:     blockName,
 			Content:  content,
-		}
-		return rpaasClient.UpdateBlock(ctx, args)
+		})
 	})
 
 	if err != nil {
@@ -165,7 +155,18 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	blocks, err := rpaasClient.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
+	var blocks []rpaastypes.Block
+
+	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+		bs, nerr := rpaasClient.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
+		if nerr != nil {
+			return nil, nerr
+		}
+
+		blocks = bs
+		return nil, nil
+	})
+
 	if err != nil {
 		return diag.Errorf("Unable to get block %s for instance %s: %v", blockName, instance, err)
 	}
@@ -212,8 +213,8 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 		"name":     blockName,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
+		return nil, rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
 			Instance: instance,
 			Name:     blockName,
 		})
@@ -222,6 +223,7 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 	if err != nil {
 		return diag.Errorf("Unable to remove block for instance %s: %v", instance, err)
 	}
+
 	return nil
 }
 

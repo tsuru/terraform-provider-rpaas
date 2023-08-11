@@ -8,13 +8,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
@@ -28,14 +27,6 @@ func resourceRpaasCertManager() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Read:   schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -86,9 +77,9 @@ func resourceRpaasCertManagerCreate(ctx context.Context, d *schema.ResourceData,
 		"dnsNames": dnsNames,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
 		// UpdateCertManager is really an upsert
-		return rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
+		return nil, rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
 			Instance: instance,
 			CertManager: types.CertManager{
 				Issuer:   issuer,
@@ -96,6 +87,7 @@ func resourceRpaasCertManagerCreate(ctx context.Context, d *schema.ResourceData,
 			},
 		})
 	})
+
 	if err != nil {
 		return diag.Errorf("could not create Cert Manager request: %v", err)
 	}
@@ -122,7 +114,18 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	requests, err := rpaasClient.ListCertManagerRequests(ctx, instance)
+	var requests []types.CertManager
+
+	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+		r, nerr := rpaasClient.ListCertManagerRequests(ctx, instance)
+		if nerr != nil {
+			return nil, nerr
+		}
+
+		requests = r
+		return nil, nil
+	})
+
 	if err != nil {
 		return diag.Errorf("could not list Cert Manager requests: %v", err)
 	}
@@ -160,8 +163,8 @@ func resourceRpaasCertManagerUpdate(ctx context.Context, d *schema.ResourceData,
 		"dnsNames": dnsNames,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
+		return nil, rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
 			Instance: instance,
 			CertManager: types.CertManager{
 				Issuer:   issuer,
@@ -193,10 +196,11 @@ func resourceRpaasCertManagerDelete(ctx context.Context, d *schema.ResourceData,
 		"issuer":   issuer,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
 		log.Printf("[DEBUG] Removing Cert Manager certificate request: {Service: %s, Instance: %s, Issuer: %s}", serviceName, instance, issuer)
-		return rpaasClient.DeleteCertManager(ctx, instance, issuer)
+		return nil, rpaasClient.DeleteCertManager(ctx, instance, issuer)
 	})
+
 	if err != nil {
 		return diag.Errorf("cannot remove Cert Manager request: %v", err)
 	}

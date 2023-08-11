@@ -8,14 +8,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
 	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
@@ -29,14 +28,6 @@ func resourceRpaasFile() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Read:   schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -94,21 +85,13 @@ func resourceRpaasFileCreate(ctx context.Context, d *schema.ResourceData, meta i
 		"name":     filename,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		rpaasFiles := []types.RpaasFile{
-			{
-				Name:    filename,
-				Content: []byte(content),
-			},
-		}
-		extraFileArgs := rpaas_client.ExtraFilesArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		return nil, rpaasClient.AddExtraFiles(ctx, rpaas_client.ExtraFilesArgs{
 			Instance: instance,
-			Files:    rpaasFiles,
-		}
-
-		return rpaasClient.AddExtraFiles(ctx,
-			extraFileArgs,
-		)
+			Files: []types.RpaasFile{
+				{Name: filename, Content: []byte(content)},
+			},
+		})
 	})
 
 	if err != nil {
@@ -144,21 +127,13 @@ func resourceRpaasFileUpdate(ctx context.Context, d *schema.ResourceData, meta i
 		"name":     filename,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		rpaasFiles := []types.RpaasFile{
-			{
-				Name:    filename,
-				Content: []byte(content),
-			},
-		}
-		extraFileArgs := rpaas_client.ExtraFilesArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
+		return nil, rpaasClient.UpdateExtraFiles(ctx, rpaas_client.ExtraFilesArgs{
 			Instance: instance,
-			Files:    rpaasFiles,
-		}
-
-		return rpaasClient.UpdateExtraFiles(ctx,
-			extraFileArgs,
-		)
+			Files: []types.RpaasFile{
+				{Name: filename, Content: []byte(content)},
+			},
+		})
 	})
 
 	if err != nil {
@@ -182,9 +157,19 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	rpaasFile, err := rpaasClient.GetExtraFile(ctx, rpaas_client.GetExtraFileArgs{
-		Instance: instance,
-		FileName: filename,
+	var rpaasFile types.RpaasFile
+
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+		f, nerr := rpaasClient.GetExtraFile(ctx, rpaas_client.GetExtraFileArgs{
+			Instance: instance,
+			FileName: filename,
+		})
+		if nerr != nil {
+			return nil, err
+		}
+
+		rpaasFile = f
+		return nil, nil
 	})
 
 	if rpaas_client.IsNotFoundError(err) {
@@ -221,8 +206,8 @@ func resourceRpaasFileDelete(ctx context.Context, d *schema.ResourceData, meta i
 		"name":     filename,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.DeleteExtraFiles(ctx,
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
+		return nil, rpaasClient.DeleteExtraFiles(ctx,
 			rpaas_client.DeleteExtraFilesArgs{
 				Instance: instance,
 				Files:    []string{filename},

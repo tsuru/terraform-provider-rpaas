@@ -7,14 +7,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
 	rpaas_client "github.com/tsuru/rpaas-operator/pkg/rpaas/client"
+	"github.com/tsuru/rpaas-operator/pkg/rpaas/client/types"
 )
 
 func resourceRpaasCertificate() *schema.Resource {
@@ -26,14 +26,6 @@ func resourceRpaasCertificate() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(20 * time.Minute),
-			Read:   schema.DefaultTimeout(20 * time.Minute),
-			Update: schema.DefaultTimeout(20 * time.Minute),
-			Delete: schema.DefaultTimeout(20 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -93,8 +85,8 @@ func resourceRpaasCertificateCreate(ctx context.Context, d *schema.ResourceData,
 		"name":     certName,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateCertificate(ctx, args) // UpdateCertificate is really an upsert
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		return nil, rpaasClient.UpdateCertificate(ctx, args) // UpdateCertificate is really an upsert
 	})
 
 	if err != nil {
@@ -123,13 +115,20 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	info, err := rpaasClient.Info(ctx, rpaas_client.InfoArgs{
-		Instance: instance,
+	var info *types.InstanceInfo
+
+	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+		i, nerr := rpaasClient.Info(ctx, rpaas_client.InfoArgs{Instance: instance})
+		if nerr != nil {
+			return nil, nerr
+		}
+
+		info = i
+		return nil, nil
 	})
 
 	if err != nil {
 		return diag.Errorf("Unable to read rpaas instance %s: %v", instance, err)
-
 	}
 
 	for _, certificate := range info.Certificates {
@@ -139,7 +138,6 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId("")
-
 	return nil
 }
 
@@ -169,8 +167,8 @@ func resourceRpaasCertificateUpdate(ctx context.Context, d *schema.ResourceData,
 		"name":     certName,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.UpdateCertificate(ctx, args)
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
+		return nil, rpaasClient.UpdateCertificate(ctx, args)
 	})
 
 	if err != nil {
@@ -197,8 +195,8 @@ func resourceRpaasCertificateDelete(ctx context.Context, d *schema.ResourceData,
 		"name":     certName,
 	})
 
-	err = rpaasRetry(ctx, d, func() error {
-		return rpaasClient.DeleteCertificate(ctx, rpaas_client.DeleteCertificateArgs{
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
+		return nil, rpaasClient.DeleteCertificate(ctx, rpaas_client.DeleteCertificateArgs{
 			Instance: instance,
 			Name:     certName,
 		})

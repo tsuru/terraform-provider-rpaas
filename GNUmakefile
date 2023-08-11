@@ -5,10 +5,13 @@ BINARY=terraform-provider-${NAME}
 VERSION=$(shell git describe --tags $(git rev-list --tags --max-count=1) | tr -d v)
 OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
 
-default: install
+default: lint test build install
 
 build:
 	CGO_ENABLED=0 go build -ldflags="-X github.com/tsuru/terraform-provider-rpaas/internal/provider.Version=$(VERSION)" -o ${BINARY}
+
+lint:
+	golangci-lint run
 
 release:
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_darwin_amd64
