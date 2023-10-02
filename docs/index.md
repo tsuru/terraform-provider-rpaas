@@ -16,7 +16,18 @@ provider "tsuru" {}
 resource "tsuru_service_instance" "my_rpaas" {
   service_name = "rpaasv2-be"
   name         = "my-rpaas"
+  parameters   = {
+  "plan-override" = jsonencode({
+      "config" = {
+        "cacheSize"         = "30Gi",
+        "cacheZoneSize"     = "200M",
+        "cacheInactive"     = "24h",
+        "mapHashBucketSize" = 128,
+      },
+    })
+  }
 }
+
 
 resource "rpaas_autoscale" "be_autoscale" {
   service_name = tsuru_service_instance.my_rpaas.service_name
@@ -82,3 +93,13 @@ resource "rpaas_route" "be_route_custom" {
 verification during TLS protocol.
 - `tsuru_target` (String) URL address for Tsuru API
 - `tsuru_token` (String) Authentication token for Tsuru API
+- `parameters` (String) You can pass the parameter to override RPaaSV2 default
+settings
+  - `plan-override` (Json) configuration which will replace values from the
+  default Nginx template with `config`.
+    - `config` (Json) The values that can be replaced are these
+      - `cacheSize` (String) this parameter will replace the Nginx default
+      - `cacheZoneSize` (String)this parameter will replace the Nginx default
+      - `cacheInactive` (String)this parameter will replace the Nginx default
+      - `mapHashBucketSize` (String)this parameter will replace the Nginx default
+      - `LogFormat` (String)this parameter will replace the Nginx default
