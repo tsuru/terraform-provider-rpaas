@@ -10,6 +10,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tsuru/go-tsuruclient v0.0.0-20230810191332-d7797f6ca207
 	github.com/tsuru/rpaas-operator v0.37.1-0.20230811141023-a01d7e5bde12
+	github.com/tsuru/tsuru v0.0.0-20230721211340-f41fb455f8c3
 	k8s.io/apimachinery v0.26.2
 )
 
@@ -31,7 +32,7 @@ require (
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/docker v20.10.24+incompatible // indirect
+	github.com/docker/docker v24.0.7+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
@@ -134,7 +135,6 @@ require (
 	github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa // indirect
 	github.com/tsuru/nginx-operator v0.13.2 // indirect
 	github.com/tsuru/tablecli v0.0.0-20190131152944-7ded8a3383c6 // indirect
-	github.com/tsuru/tsuru v0.0.0-20230721211340-f41fb455f8c3 // indirect
 	github.com/uber/jaeger-client-go v2.25.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
