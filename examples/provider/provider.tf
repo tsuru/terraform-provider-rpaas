@@ -1,5 +1,14 @@
-provider "rpaas" {}
-provider "tsuru" {}
+local {
+  tsuru_target = "https://mytsuru.example.com"
+}
+
+provider "rpaas" {
+  tsuru_target = local.tsuru_target
+}
+
+provider "tsuru" {
+  host = local.tsuru_target
+}
 
 resource "tsuru_service_instance" "my_rpaas" {
   service_name = "rpaasv2-be"
