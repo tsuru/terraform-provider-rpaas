@@ -162,6 +162,7 @@ github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8
 github.com/docker/distribution v2.8.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker v20.10.24+incompatible h1:Ugvxm7a8+Gz6vqQYQQ2W7GYq5EUPaAiuPgIfVyI3dYE=
 github.com/docker/docker v20.10.24+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v23.0.0-rc.1+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
@@ -754,6 +755,8 @@ github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa h1:JlLQP1xa13a994p/A
 github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa/go.mod h1:UibOSvkMFKRe/eiwktAPAvQG8L+p8nYsECJvu3Dgw7I=
 github.com/tsuru/go-tsuruclient v0.0.0-20230810191332-d7797f6ca207 h1:w+lEWe6tu1mAKi3fpvVrus95QcM1VyFiYm2yw5pguYE=
 github.com/tsuru/go-tsuruclient v0.0.0-20230810191332-d7797f6ca207/go.mod h1:BmePxHey9hxrxk0kzTMHFFr7aJWXSxtlrUx6FIeV0Ic=
+github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b h1:CWioMVdmtkdipWKCWVnuT+6ZqzVzB/R6hdX0SW4KJOI=
+github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b/go.mod h1:qwh/KJ6ypa2GISRI79XFOHhnSjGOe1cZVPHF3nfrf18=
 github.com/tsuru/nginx-operator v0.13.2 h1:b6D+FnoVgt51/3JYUFTDYcQJwPufy+KjOUtgx6WDL9E=
 github.com/tsuru/nginx-operator v0.13.2/go.mod h1:CPfOU74PhA3kpR/hNkTswfTNYCsXK8L7ZCx25IYtlM0=
 github.com/tsuru/rpaas-operator v0.37.1-0.20230811141023-a01d7e5bde12 h1:1savFWcYIGRISsjX+Hh9k5NHKf2NrnwnrW702NzyL+c=
@@ -764,6 +767,8 @@ github.com/tsuru/tablecli v0.0.0-20190131152944-7ded8a3383c6 h1:1XDdWFAjIbCSG1Oj
 github.com/tsuru/tablecli v0.0.0-20190131152944-7ded8a3383c6/go.mod h1:ztYpOhW+u1k21FEqp7nZNgpWbr0dUKok5lgGCZi+1AQ=
 github.com/tsuru/tsuru v0.0.0-20230721211340-f41fb455f8c3 h1:Fi5mEiJiHlTCaSYpfP19kbiOzJD26yqwVojUKdLsVHA=
 github.com/tsuru/tsuru v0.0.0-20230721211340-f41fb455f8c3/go.mod h1:wk2+TMnFgB/2EPCRPPONfCipUbl6pF1U4ncfWygtKR0=
+github.com/tsuru/tsuru v0.0.0-20240325190920-410c71393b77 h1:cuWFjNLaemdQZhojqJbb/rOXO97tlcPeLAHg/x+EQGk=
+github.com/tsuru/tsuru v0.0.0-20240325190920-410c71393b77/go.mod h1:QxMVXEjpb6mPnlaLMQdxJ3XCg+vOa4/MwZWLk3/naec=
 github.com/uber/jaeger-client-go v2.25.0+incompatible h1:IxcNZ7WRY1Y3G4poYlx24szfsn/3LvK9QHCq9oQw8+U=
 github.com/uber/jaeger-client-go v2.25.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
 github.com/uber/jaeger-lib v2.4.0+incompatible h1:fY7QsGQWiCt8pajv4r7JEvmATdCVaWxXbjwyYwsNaLQ=
@@ -1400,6 +1405,8 @@ k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 h1:kmDqav+P+/5e1i9tFfHq1qcF3sOrDp+YEkVDAHu7Jwk=
 k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
+k8s.io/utils v0.0.0-20230726121419-3b25d923346b h1:sgn3ZU783SCgtaSJjpcVVlRqd6GSnlTLKgpAAttJvpI=
+k8s.io/utils v0.0.0-20230726121419-3b25d923346b/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 knative.dev/pkg v0.0.0-20230306194819-b77a78c6c0ad h1:cYCDdgSMOKiCGm6v1vvR2v4l/naGorbwoJKE/e39BJI=
 knative.dev/pkg v0.0.0-20230306194819-b77a78c6c0ad/go.mod h1:S+KfTInuwEkZSTwvWqrWZV/TEw6ps51GUGaSC1Fnbe0=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
