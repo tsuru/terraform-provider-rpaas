@@ -1,6 +1,8 @@
 module github.com/tsuru/terraform-provider-rpaas
 
-go 1.20
+go 1.21
+
+toolchain go1.22.2
 
 require (
 	github.com/cert-manager/cert-manager v1.9.0
@@ -9,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b
-	github.com/tsuru/rpaas-operator v0.37.1-0.20230811141023-a01d7e5bde12
+	github.com/tsuru/rpaas-operator v0.42.4
 	k8s.io/apimachinery v0.26.2
 )
 
@@ -31,8 +33,6 @@ require (
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/docker v23.0.0-rc.1+incompatible // indirect
-	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
@@ -79,7 +79,6 @@ require (
 	github.com/hashicorp/terraform-registry-address v0.2.1 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20210707203944-259a57b3608c // indirect
-	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -104,7 +103,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/opentracing-contrib/go-stdlib v1.0.1-0.20201028152118-adbfc141dfc2 // indirect
@@ -130,9 +128,8 @@ require (
 	github.com/spf13/viper v1.10.0 // indirect
 	github.com/stern/stern v1.20.1 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/tsuru/config v0.0.0-20201023175036-375aaee8b560 // indirect
 	github.com/tsuru/gnuflag v0.0.0-20151217162021-86b8c1b864aa // indirect
-	github.com/tsuru/nginx-operator v0.13.2 // indirect
+	github.com/tsuru/nginx-operator v0.15.2-0.20240515194244-a38b4b58e866 // indirect
 	github.com/tsuru/tablecli v0.0.0-20190131152944-7ded8a3383c6 // indirect
 	github.com/tsuru/tsuru v0.0.0-20240325190920-410c71393b77 // indirect
 	github.com/uber/jaeger-client-go v2.25.0+incompatible // indirect
@@ -174,7 +171,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20230303024457-afdc3dddf62d // indirect
 	k8s.io/kubectl v0.26.2 // indirect
 	k8s.io/metrics v0.26.2 // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
+	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
 	knative.dev/pkg v0.0.0-20230306194819-b77a78c6c0ad // indirect
 	sigs.k8s.io/controller-runtime v0.14.5 // indirect
 	sigs.k8s.io/gateway-api v0.4.3 // indirect
