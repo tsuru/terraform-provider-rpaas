@@ -42,7 +42,7 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 						certManagers, err := testAPIClient.ListCertManagerRequests(context.Background(), "my-rpaas")
 						assert.NoError(t, err)
 						assert.Len(t, certManagers, 1)
-						certManager, found := findCertManagerRequestByIssuer(certManagers, "my-custom-issuer")
+						certManager, found := findCertManagerRequestByIssuerAndName(certManagers, "my-custom-issuer", "")
 						assert.True(t, found)
 						assert.Equal(t, "my-custom-issuer", certManager.Issuer)
 						assert.EqualValues(t, []string{"*.example.com", "my-instance.test"}, certManager.DNSNames)
@@ -65,9 +65,73 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 						certManagers, err := testAPIClient.ListCertManagerRequests(context.Background(), "my-rpaas")
 						assert.NoError(t, err)
 						assert.Len(t, certManagers, 1)
-						certManager, found := findCertManagerRequestByIssuer(certManagers, "my-custom-issuer")
+						certManager, found := findCertManagerRequestByIssuerAndName(certManagers, "my-custom-issuer", "")
 						assert.True(t, found)
 						assert.Equal(t, "my-custom-issuer", certManager.Issuer)
+						assert.EqualValues(t, []string{"my-instance.test"}, certManager.DNSNames)
+						return nil
+					}),
+			},
+		},
+	})
+}
+
+func TestAccRpaasCertManager_withName(t *testing.T) {
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
+
+	resourceName := "rpaas_cert_manager.cert-manager-custom-issuer"
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		IDRefreshName:     resourceName,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRpaasCertManagerConfigWithName("my-custom-issuer", "example.com", `["*.example.com", "my-instance.test"]`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer::example.com"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer"),
+					resource.TestCheckResourceAttr(resourceName, "certificate_name", "example.com"),
+					resource.TestCheckResourceAttr(resourceName, "dns_names.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "dns_names.0", "*.example.com"),
+					resource.TestCheckResourceAttr(resourceName, "dns_names.1", "my-instance.test"),
+					func(s *terraform.State) error {
+						certManagers, err := testAPIClient.ListCertManagerRequests(context.Background(), "my-rpaas")
+						assert.NoError(t, err)
+						assert.Len(t, certManagers, 1)
+						certManager, found := findCertManagerRequestByIssuerAndName(certManagers, "my-custom-issuer", "")
+						assert.True(t, found)
+						assert.Equal(t, "example.com", certManager.Name)
+						assert.Equal(t, "my-custom-issuer", certManager.Issuer)
+						assert.EqualValues(t, []string{"*.example.com", "my-instance.test"}, certManager.DNSNames)
+						return nil
+					},
+				),
+			},
+			{
+				// Testing Update
+				Config: testAccRpaasCertManagerConfigWithName("my-custom-issuer", "example.com", `["my-instance.test"]`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer::example.com"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer"),
+					resource.TestCheckResourceAttr(resourceName, "certificate_name", "example.com"),
+					resource.TestCheckResourceAttr(resourceName, "dns_names.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "dns_names.0", "my-instance.test"),
+					func(s *terraform.State) error {
+						certManagers, err := testAPIClient.ListCertManagerRequests(context.Background(), "my-rpaas")
+						assert.NoError(t, err)
+						assert.Len(t, certManagers, 1)
+						certManager, found := findCertManagerRequestByIssuerAndName(certManagers, "my-custom-issuer", "")
+						assert.True(t, found)
+						assert.Equal(t, "my-custom-issuer", certManager.Issuer)
+						assert.Equal(t, "example.com", certManager.Name)
 						assert.EqualValues(t, []string{"my-instance.test"}, certManager.DNSNames)
 						return nil
 					}),
@@ -141,4 +205,15 @@ resource "rpaas_cert_manager" "cert-manager-custom-issuer" {
 	issuer       = "%s"
 	dns_names    = %s
 }`, issuer, dnsNamesArray)
+}
+
+func testAccRpaasCertManagerConfigWithName(issuer, name, dnsNamesArray string) string {
+	return fmt.Sprintf(`
+resource "rpaas_cert_manager" "cert-manager-custom-issuer" {
+	instance         = "my-rpaas"
+	service_name     = "rpaasv2"
+	certificate_name = "%s"
+	issuer           = "%s"
+	dns_names        = %s
+}`, name, issuer, dnsNamesArray)
 }

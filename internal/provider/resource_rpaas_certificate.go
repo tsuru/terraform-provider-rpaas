@@ -117,7 +117,7 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 
 	var info *types.InstanceInfo
 
-	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
 		i, nerr := rpaasClient.Info(ctx, rpaas_client.InfoArgs{Instance: instance})
 		if nerr != nil {
 			return nil, nerr
