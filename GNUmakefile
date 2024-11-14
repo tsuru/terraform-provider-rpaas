@@ -3,7 +3,32 @@ NAMESPACE=tsuru
 NAME=rpaas
 BINARY=terraform-provider-${NAME}
 VERSION=$(shell git describe --tags $(git rev-list --tags --max-count=1) | tr -d v)
-OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
+UNAME_S := $(shell uname -s)
+UNAME_P := $(shell uname -p)
+ifeq ($(UNAME_S),Linux)
+	OS := linux
+	UNAME_P := $(shell uname -m)
+endif
+ifeq ($(UNAME_S),Darwin)
+	OS := darwin
+	UNAME_P := $(shell uname -m)
+endif
+
+ifeq ($(UNAME_P),x86_64)
+	ARCH := amd64
+endif
+
+ifneq ($(filter %86,$(UNAME_P)),)
+	ARCH := 386
+endif
+ifneq ($(filter arm%,$(UNAME_P)),)
+	ARCH := arm
+endif
+ifeq ($(UNAME_P),arm64)
+	ARCH := arm64
+endif
+
+OS_ARCH=${OS}_${ARCH}
 
 TFPLUGINDOCS_VERSION ?= v0.16.0
 
