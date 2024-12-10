@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b
-	github.com/tsuru/rpaas-operator v0.42.4
+	github.com/tsuru/rpaas-operator v0.43.0
 	k8s.io/apimachinery v0.26.2
 )
 

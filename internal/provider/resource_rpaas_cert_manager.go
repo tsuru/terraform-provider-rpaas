@@ -46,6 +46,12 @@ func resourceRpaasCertManager() *schema.Resource {
 				ForceNew:    true,
 				Description: "Certificate issuer name",
 			},
+			"certificate_name": {
+				Type:        schema.TypeString,
+				ForceNew:    true,
+				Optional:    true,
+				Description: "Certificate Name, required on new version of RPaaS API",
+			},
 			"dns_names": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
@@ -68,13 +74,18 @@ func resourceRpaasCertManagerCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	instance, issuer, dnsNames := d.Get("instance").(string), d.Get("issuer").(string), asSliceOfStrings(d.Get("dns_names"))
+	instance := d.Get("instance").(string)
+	issuer := d.Get("issuer").(string)
+	certificateName := d.Get("certificate_name").(string)
+
+	dnsNames := asSliceOfStrings(d.Get("dns_names"))
 
 	tflog.Info(ctx, "Create rpaas_cert_manager", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"issuer":   issuer,
-		"dnsNames": dnsNames,
+		"certificate_name": certificateName,
+		"service":          serviceName,
+		"instance":         instance,
+		"issuer":           issuer,
+		"dnsNames":         dnsNames,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
@@ -82,6 +93,7 @@ func resourceRpaasCertManagerCreate(ctx context.Context, d *schema.ResourceData,
 		return nil, rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
 			Instance: instance,
 			CertManager: types.CertManager{
+				Name:     certificateName,
 				Issuer:   issuer,
 				DNSNames: dnsNames,
 			},
@@ -92,22 +104,35 @@ func resourceRpaasCertManagerCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.Errorf("could not create Cert Manager request: %v", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, issuer))
+	var id string
+	if certificateName == "" {
+		id = fmt.Sprintf("%s::%s::%s", serviceName, instance, issuer)
+	} else {
+		id = fmt.Sprintf("%s::%s::%s::%s", serviceName, instance, issuer, certificateName)
+	}
+
+	d.SetId(id)
 	return resourceRpaasCertManagerRead(ctx, d, meta)
 }
 
 func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, issuer, err := parseCertManagerID(d.Id())
+	serviceName, instance, issuer, certificateName, err := parseCertManagerID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse CertManager ID: %v", err)
 	}
-
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, issuer))
+	var id string
+	if certificateName == "" {
+		id = fmt.Sprintf("%s::%s::%s", serviceName, instance, issuer)
+	} else {
+		id = fmt.Sprintf("%s::%s::%s::%s", serviceName, instance, issuer, certificateName)
+	}
+	d.SetId(id)
 	d.Set("service_name", serviceName)
 	d.Set("instance", instance)
 	d.Set("issuer", issuer)
+	d.Set("certificate_name", certificateName)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -116,7 +141,7 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 
 	var requests []types.CertManager
 
-	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
 		r, nerr := rpaasClient.ListCertManagerRequests(ctx, instance)
 		if nerr != nil {
 			return nil, nerr
@@ -130,7 +155,7 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf("could not list Cert Manager requests: %v", err)
 	}
 
-	request, found := findCertManagerRequestByIssuer(requests, issuer)
+	request, found := findCertManagerRequestByIssuerAndName(requests, issuer, certificateName)
 	if !found {
 		log.Printf("[DEBUG] Removing resource (ID: %s) from state as it's not found on RPaaS", d.Id())
 		d.SetId("")
@@ -145,7 +170,7 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 func resourceRpaasCertManagerUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, issuer, err := parseCertManagerID(d.Id())
+	serviceName, instance, issuer, certificateName, err := parseCertManagerID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse CertManager ID: %v", err)
 	}
@@ -157,16 +182,18 @@ func resourceRpaasCertManagerUpdate(ctx context.Context, d *schema.ResourceData,
 	dnsNames := asSliceOfStrings(d.Get("dns_names"))
 
 	tflog.Info(ctx, "Update rpaas_cert_manager", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"issuer":   issuer,
-		"dnsNames": dnsNames,
+		"certificate_name": certificateName,
+		"service":          serviceName,
+		"instance":         instance,
+		"issuer":           issuer,
+		"dnsNames":         dnsNames,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
 		return nil, rpaasClient.UpdateCertManager(ctx, rpaas_client.UpdateCertManagerArgs{
 			Instance: instance,
 			CertManager: types.CertManager{
+				Name:     certificateName,
 				Issuer:   issuer,
 				DNSNames: dnsNames,
 			},
@@ -180,25 +207,32 @@ func resourceRpaasCertManagerUpdate(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceRpaasCertManagerDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	serviceName, instance, issuer, certificateName, err := parseCertManagerID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse CertManager ID: %v", err)
+	}
+
 	provider := meta.(*rpaasProvider)
 
-	serviceName := d.Get("service_name").(string)
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
-	instance, issuer := d.Get("instance").(string), d.Get("issuer").(string)
-
 	tflog.Info(ctx, "Delete rpaas_cert_manager", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"issuer":   issuer,
+		"certificate_name": certificateName,
+		"service":          serviceName,
+		"instance":         instance,
+		"issuer":           issuer,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
 		log.Printf("[DEBUG] Removing Cert Manager certificate request: {Service: %s, Instance: %s, Issuer: %s}", serviceName, instance, issuer)
-		return nil, rpaasClient.DeleteCertManager(ctx, instance, issuer)
+
+		if certificateName != "" {
+			return nil, rpaasClient.DeleteCertManagerByName(ctx, instance, certificateName)
+		}
+		return nil, rpaasClient.DeleteCertManagerByIssuer(ctx, instance, issuer)
 	})
 
 	if err != nil {
@@ -208,9 +242,12 @@ func resourceRpaasCertManagerDelete(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func findCertManagerRequestByIssuer(reqs []types.CertManager, issuer string) (*types.CertManager, bool) {
+func findCertManagerRequestByIssuerAndName(reqs []types.CertManager, issuer, name string) (*types.CertManager, bool) {
 	for _, r := range reqs {
 		if r.Issuer == issuer {
+			if name != "" && r.Name != name {
+				continue
+			}
 			return &r, true
 		}
 	}
@@ -227,13 +264,13 @@ func asSliceOfStrings(data interface{}) []string {
 	return values
 }
 
-func parseCertManagerID(id string) (serviceName, instance, issuer string, err error) {
+func parseCertManagerID(id string) (serviceName, instance, issuer, name string, err error) {
 	splitID := strings.Split(id, "::")
 
-	if len(splitID) != 3 {
+	if len(splitID) > 4 || len(splitID) < 3 {
 		serviceName, instance, issuer, err = parseCertManagerID_legacyV0(id)
 		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::issuer\"", id)
+			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::issuer::certificateName\"", id)
 		}
 		return
 	}
@@ -241,6 +278,9 @@ func parseCertManagerID(id string) (serviceName, instance, issuer string, err er
 	serviceName = splitID[0]
 	instance = splitID[1]
 	issuer = splitID[2]
+	if len(splitID) == 4 {
+		name = splitID[3] // blank on older versions
+	}
 	return
 }
 

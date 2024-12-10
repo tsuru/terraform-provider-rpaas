@@ -157,7 +157,7 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 
 	var blocks []rpaastypes.Block
 
-	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
 		bs, nerr := rpaasClient.ListBlocks(ctx, rpaas_client.ListBlocksArgs{Instance: instance})
 		if nerr != nil {
 			return nil, nerr
