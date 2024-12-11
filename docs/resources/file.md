@@ -53,21 +53,10 @@ resource "rpaas_file" "example_txt" {
 
 - `content` (String) Content of the persistent file in the instance filesystem, expected to be an UTF-8 encoded string.
 - `content_base64` (String) Content of the persistent file in the instance filesystem, expected to be binary encoded as base64 string. (v0.2.3)
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-<a id="nestedblock--timeouts"></a>
-### Nested Schema for `timeouts`
-
-Optional:
-
-- `create` (String)
-- `delete` (String)
-- `read` (String)
-- `update` (String)
 
 ## Import
 

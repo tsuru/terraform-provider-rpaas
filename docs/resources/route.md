@@ -37,21 +37,10 @@ resource "rpaas_route" "example" {
 - `content` (String) Custom Nginx configuration content
 - `destination` (String) Custom Nginx upstream destination
 - `https_only` (Boolean) Only on https
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-<a id="nestedblock--timeouts"></a>
-### Nested Schema for `timeouts`
-
-Optional:
-
-- `create` (String)
-- `delete` (String)
-- `read` (String)
-- `update` (String)
 
 ## Import
 
