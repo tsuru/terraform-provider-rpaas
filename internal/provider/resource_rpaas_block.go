@@ -42,6 +42,18 @@ func resourceRpaasBlock() *schema.Resource {
 				ForceNew:    true,
 				Description: "RPaaS Service Name",
 			},
+			"server_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Optional parameter used to match the server name in the block. If not provided, it will apply to all servers.",
+			},
+			"extend": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Extend is a flag to indicate if the block should be appended to the default configuration, only valid when specify a server_name.",
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -72,8 +84,10 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
+	serverName := d.Get("server_name").(string)
 	blockName := d.Get("name").(string)
 	content := d.Get("content").(string)
+	extend := d.Get("extend").(bool)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -81,16 +95,20 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	tflog.Info(ctx, "Create block", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"name":     blockName,
+		"service":    serviceName,
+		"instance":   instance,
+		"serverName": serverName,
+		"name":       blockName,
+		"extend":     extend,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
 		return nil, rpaasClient.UpdateBlock(ctx, rpaas_client.UpdateBlockArgs{
-			Instance: instance,
-			Name:     blockName,
-			Content:  content,
+			Instance:   instance,
+			Name:       blockName,
+			ServerName: serverName,
+			Content:    content,
+			Extend:     extend,
 		})
 	})
 
@@ -98,14 +116,18 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
+	if serverName == "" {
+		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
+	} else {
+		d.SetId(fmt.Sprintf("%s::%s::%s::%s", serviceName, instance, serverName, blockName))
+	}
 	return resourceRpaasBlockRead(ctx, d, meta)
 }
 
 func resourceRpaasBlockUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, blockName, err := parseRpaasBlockID(d.Id())
+	serviceName, instance, serverName, blockName, err := parseRpaasBlockID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse Block ID: %v", err)
 	}
@@ -116,18 +138,22 @@ func resourceRpaasBlockUpdate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	content := d.Get("content").(string)
+	extend := d.Get("extend").(bool)
 	tflog.Info(ctx, "Update block", map[string]interface{}{
-		"id":       d.Id(),
-		"service":  serviceName,
-		"instance": instance,
-		"name":     blockName,
+		"id":         d.Id(),
+		"service":    serviceName,
+		"instance":   instance,
+		"serverName": serverName,
+		"name":       blockName,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
 		return nil, rpaasClient.UpdateBlock(ctx, rpaas_client.UpdateBlockArgs{
-			Instance: instance,
-			Name:     blockName,
-			Content:  content,
+			Instance:   instance,
+			Name:       blockName,
+			ServerName: serverName,
+			Content:    content,
+			Extend:     extend,
 		})
 	})
 
@@ -141,7 +167,7 @@ func resourceRpaasBlockUpdate(ctx context.Context, d *schema.ResourceData, meta 
 func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, blockName, err := parseRpaasBlockID(d.Id())
+	serviceName, instance, serverName, blockName, err := parseRpaasBlockID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse Block ID: %v", err)
 	}
@@ -149,6 +175,7 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
 	d.Set("instance", instance)
 	d.Set("service_name", serviceName)
+	d.Set("server_name", serverName)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -182,12 +209,20 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	for _, b := range blocks {
-		if b.Name == blockName {
-			d.Set("name", b.Name)
-			d.Set("content", b.Content)
-			d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
-			return nil
+		if b.ServerName != serverName || b.Name != blockName {
+			continue
 		}
+
+		d.Set("name", b.Name)
+		d.Set("content", b.Content)
+		d.Set("extend", b.Extend)
+
+		if serverName == "" {
+			d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, blockName))
+		} else {
+			d.SetId(fmt.Sprintf("%s::%s::%s::%s", serviceName, instance, serverName, blockName))
+		}
+		return nil
 	}
 
 	// no match
@@ -198,25 +233,29 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
-	blockName := d.Get("name").(string)
+	serviceName, instance, serverName, blockName, err := parseRpaasBlockID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Block ID: %v", err)
+	}
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
 	tflog.Info(ctx, "Delete block", map[string]interface{}{
-		"id":       d.Id(),
-		"service":  serviceName,
-		"instance": instance,
-		"name":     blockName,
+		"id":         d.Id(),
+		"service":    serviceName,
+		"instance":   instance,
+		"serverName": serverName,
+		"name":       blockName,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
 		return nil, rpaasClient.DeleteBlock(ctx, rpaas_client.DeleteBlockArgs{
-			Instance: instance,
-			Name:     blockName,
+			Instance:   instance,
+			Name:       blockName,
+			ServerName: serverName,
 		})
 	})
 
@@ -227,20 +266,22 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func parseRpaasBlockID(id string) (serviceName, instance, blockName string, err error) {
+func parseRpaasBlockID(id string) (serviceName, instance, serverName, blockName string, err error) {
 	splitID := strings.Split(id, "::")
 
-	if len(splitID) != 3 {
+	if len(splitID) == 3 {
+		serviceName = splitID[0]
+		instance = splitID[1]
+		blockName = splitID[2]
+	} else if len(splitID) == 4 {
+		serviceName = splitID[0]
+		instance = splitID[1]
+		serverName = splitID[2]
+		blockName = splitID[3]
+	} else {
 		serviceName, instance, blockName, err = parseRpaasBlockID_legacyV0(id)
-		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::blockName\"", id)
-		}
-		return
 	}
 
-	serviceName = splitID[0]
-	instance = splitID[1]
-	blockName = splitID[2]
 	return
 }
 
@@ -248,7 +289,7 @@ func parseRpaasBlockID_legacyV0(id string) (serviceName, instance, blockName str
 	splitID := strings.Split(id, "/")
 
 	if len(splitID) != 2 {
-		err = fmt.Errorf("Resource ID could not be parsed. Legacy WRONG format: \"service/instance\"")
+		err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::blockName\" or \"service::instance::serverName::blockName\"", id)
 		return
 	}
 

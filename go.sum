@@ -759,8 +759,8 @@ github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b h1:CWioMVdmtk
 github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b/go.mod h1:qwh/KJ6ypa2GISRI79XFOHhnSjGOe1cZVPHF3nfrf18=
 github.com/tsuru/nginx-operator v0.15.2-0.20240515194244-a38b4b58e866 h1:aCoSpcfQuMztS/7xFrQ2ml02NxqipXYLMgJonyux6fk=
 github.com/tsuru/nginx-operator v0.15.2-0.20240515194244-a38b4b58e866/go.mod h1:qdJQVY4buUQymyhcpYO99ZCfLMPRvcB/1ywK3PAh/+Q=
-github.com/tsuru/rpaas-operator v0.45.0 h1:c0pf6nxSGzriuBx61k1V5dFGHtaPWqnZQEghfqTRizM=
-github.com/tsuru/rpaas-operator v0.45.0/go.mod h1:aUYNaPrPgNn/5k+VdA+6JgcPwYkhUvh790r8Q0vZ+O4=
+github.com/tsuru/rpaas-operator v0.45.1 h1:TTfS95vPOO7mpfpMTtqrLDA/ctA9wGl4A2p75cXm0K0=
+github.com/tsuru/rpaas-operator v0.45.1/go.mod h1:aUYNaPrPgNn/5k+VdA+6JgcPwYkhUvh790r8Q0vZ+O4=
 github.com/tsuru/stern v1.20.2-0.20210928180051-1157b938dc3f h1:9dTZI6bQUVkKAsCnqaDl4V7fKAc5ErVpmX+bzevz3Cg=
 github.com/tsuru/stern v1.20.2-0.20210928180051-1157b938dc3f/go.mod h1:SUQKJ3CLsVARBwkz5z9IIL8Pj008JNj4U8eF50kkm2c=
 github.com/tsuru/tablecli v0.0.0-20190131152944-7ded8a3383c6 h1:1XDdWFAjIbCSG1OjN9v9KdWhuM8UtYlFcfHe/Ldkchk=
