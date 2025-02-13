@@ -39,6 +39,12 @@ func resourceRpaasRoute() *schema.Resource {
 				ForceNew:    true,
 				Description: "RPaaS Service Name",
 			},
+			"server_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Optional parameter used to match the server name in the location block. If not provided, it will apply to all servers.",
+			},
 			"path": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -72,6 +78,7 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 
 	instance := d.Get("instance").(string)
 	serviceName := d.Get("service_name").(string)
+	serverName := d.Get("server_name").(string)
 	path := d.Get("path").(string)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
@@ -80,27 +87,33 @@ func resourceRpaasRouteCreate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	tflog.Info(ctx, "Create route", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"path":     path,
+		"service":    serviceName,
+		"instance":   instance,
+		"serverName": serverName,
+		"path":       path,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
-		return nil, updateRpaasRoute(ctx, d, instance, path, rpaasClient)
+		return nil, updateRpaasRoute(ctx, d, instance, serverName, path, rpaasClient)
 	})
 
 	if err != nil {
 		return diag.Errorf("Unable to create route %s for instance %s: %v", path, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
+	if serverName == "" {
+		d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
+	} else {
+		d.SetId(fmt.Sprintf("%s::%s::%s::%s", serviceName, instance, serverName, path))
+	}
+
 	return resourceRpaasRouteRead(ctx, d, meta)
 }
 
 func resourceRpaasRouteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, path, err := parseRpaasRouteID(d.Id())
+	serviceName, instance, serverName, path, err := parseRpaasRouteID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse Route ID: %v", err)
 	}
@@ -111,13 +124,14 @@ func resourceRpaasRouteUpdate(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	tflog.Info(ctx, "Update route", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"path":     path,
+		"service":    serviceName,
+		"instance":   instance,
+		"serverName": serverName,
+		"path":       path,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
-		return nil, updateRpaasRoute(ctx, d, instance, path, rpaasClient)
+		return nil, updateRpaasRoute(ctx, d, instance, serverName, path, rpaasClient)
 	})
 
 	if err != nil {
@@ -130,13 +144,14 @@ func resourceRpaasRouteUpdate(ctx context.Context, d *schema.ResourceData, meta 
 func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	serviceName, instance, path, err := parseRpaasRouteID(d.Id())
+	serviceName, instance, serverName, path, err := parseRpaasRouteID(d.Id())
 	if err != nil {
 		return diag.Errorf("Unable to parse Route ID: %v", err)
 	}
 
 	d.Set("instance", instance)
 	d.Set("service_name", serviceName)
+	d.Set("server_name", serverName)
 
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
@@ -171,12 +186,17 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 	}
 
 	for _, b := range routes {
-		if b.Path == path {
+		if b.ServerName == serverName && b.Path == path {
 			d.Set("path", b.Path)
 			d.Set("https_only", b.HTTPSOnly)
 			d.Set("destination", b.Destination)
 			d.Set("content", b.Content)
-			d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
+
+			if serverName == "" {
+				d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, path))
+			} else {
+				d.SetId(fmt.Sprintf("%s::%s::%s::%s", serviceName, instance, serverName, path))
+			}
 			return nil
 		}
 	}
@@ -189,24 +209,28 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*rpaasProvider)
 
-	instance := d.Get("instance").(string)
-	serviceName := d.Get("service_name").(string)
-	path := d.Get("path").(string)
+	serviceName, instance, serverName, path, err := parseRpaasRouteID(d.Id())
+	if err != nil {
+		return diag.Errorf("Unable to parse Route ID: %v", err)
+	}
+
 	rpaasClient, err := provider.RpaasClient.SetService(serviceName)
 	if err != nil {
 		return diag.Errorf("Unable to create client for service %s: %v", serviceName, err)
 	}
 
 	tflog.Info(ctx, "Delete route", map[string]interface{}{
-		"service":  serviceName,
-		"instance": instance,
-		"path":     path,
+		"service":    serviceName,
+		"instance":   instance,
+		"serverName": serverName,
+		"path":       path,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
 		return nil, rpaasClient.DeleteRoute(ctx, rpaas_client.DeleteRouteArgs{
-			Instance: instance,
-			Path:     path,
+			Instance:   instance,
+			ServerName: serverName,
+			Path:       path,
 		})
 	})
 
@@ -217,28 +241,31 @@ func resourceRpaasRouteDelete(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func parseRpaasRouteID(id string) (serviceName, instance, path string, err error) {
+func parseRpaasRouteID(id string) (serviceName, instance, serverName, path string, err error) {
 	splitID := strings.Split(id, "::")
 
-	if len(splitID) != 3 {
-		serviceName, instance, path, err = parseRpaasRouteID_legacyV0(id)
-		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::path\"", id)
-		}
-		return
+	if len(splitID) == 4 {
+		serviceName = splitID[0]
+		instance = splitID[1]
+		serverName = splitID[2]
+		path = splitID[3]
+	} else if len(splitID) == 3 {
+		serviceName = splitID[0]
+		instance = splitID[1]
+		path = splitID[2]
+	} else {
+		serviceName, instance, err = parseRpaasRouteID_legacyV0(id)
 	}
 
-	serviceName = splitID[0]
-	instance = splitID[1]
-	path = splitID[2]
 	return
 }
 
-func updateRpaasRoute(ctx context.Context, d *schema.ResourceData, instance, path string, rpaasClient rpaas_client.Client) error {
+func updateRpaasRoute(ctx context.Context, d *schema.ResourceData, instance, serverName, path string, rpaasClient rpaas_client.Client) error {
 	args := rpaas_client.UpdateRouteArgs{
-		Instance:  instance,
-		Path:      path,
-		HTTPSOnly: d.Get("https_only").(bool),
+		Instance:   instance,
+		ServerName: serverName,
+		Path:       path,
+		HTTPSOnly:  d.Get("https_only").(bool),
 	}
 
 	if content, ok := d.GetOk("content"); ok {
@@ -251,10 +278,10 @@ func updateRpaasRoute(ctx context.Context, d *schema.ResourceData, instance, pat
 	return rpaasClient.UpdateRoute(ctx, args)
 }
 
-func parseRpaasRouteID_legacyV0(id string) (serviceName, instance, path string, err error) {
+func parseRpaasRouteID_legacyV0(id string) (serviceName, instance string, err error) {
 	splitID := strings.Split(id, "/")
 	if len(splitID) != 2 {
-		err = fmt.Errorf("Resource ID could not be parsed. Legacy WRONG format: \"service/instance\"")
+		err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::path\" or \"service::instance::serverName::path\"", id)
 		return
 	}
 
