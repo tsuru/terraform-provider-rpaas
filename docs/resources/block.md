@@ -78,6 +78,11 @@ resource "rpaas_block" "example_lua" {
 - `name` (String) Name of the block that will receive the custom configuration content. Allowed values: [root http server lua-server lua-worker]
 - `service_name` (String) RPaaS Service Name
 
+### Optional
+
+- `extend` (Boolean) Extend is a flag to indicate if the block should be appended to the default configuration, only valid when specify a server_name.
+- `server_name` (String) Optional parameter used to match the server name in the block. If not provided, it will apply to all servers.
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.
