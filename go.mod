@@ -11,8 +11,8 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b
-	github.com/tsuru/rpaas-operator v0.43.0
-	k8s.io/apimachinery v0.26.2
+	github.com/tsuru/rpaas-operator v0.45.1
+	k8s.io/apimachinery v0.26.7
 )
 
 require (
@@ -144,6 +144,7 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
+	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/oauth2 v0.10.0 // indirect
@@ -161,16 +162,16 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.26.2 // indirect
+	k8s.io/api v0.26.7 // indirect
 	k8s.io/apiextensions-apiserver v0.26.2 // indirect
-	k8s.io/cli-runtime v0.26.2 // indirect
-	k8s.io/client-go v0.26.2 // indirect
-	k8s.io/component-base v0.26.2 // indirect
+	k8s.io/cli-runtime v0.26.7 // indirect
+	k8s.io/client-go v0.26.7 // indirect
+	k8s.io/component-base v0.26.7 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230303024457-afdc3dddf62d // indirect
-	k8s.io/kubectl v0.26.2 // indirect
-	k8s.io/metrics v0.26.2 // indirect
+	k8s.io/kubectl v0.26.7 // indirect
+	k8s.io/metrics v0.26.7 // indirect
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
 	knative.dev/pkg v0.0.0-20230306194819-b77a78c6c0ad // indirect
 	sigs.k8s.io/controller-runtime v0.14.5 // indirect

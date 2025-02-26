@@ -88,6 +88,64 @@ func TestAccRpaasBlock_basic(t *testing.T) {
 	})
 }
 
+func TestAccRpaasBlock_multiserver(t *testing.T) {
+	testAPIClient, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
+
+	resourceName := "rpaas_block.custom_block_server"
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		IDRefreshName:     resourceName,
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRpaasBlockConfigWithServerName("example.org", "server", "# nginx config"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::example.org::server"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "server_name", "example.org"),
+					resource.TestCheckResourceAttr(resourceName, "name", "server"),
+					resource.TestCheckResourceAttr(resourceName, "content", "# nginx config\n"),
+					func(s *terraform.State) error {
+						blocks, err := testAPIClient.ListBlocks(context.Background(), client.ListBlocksArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, blocks, 1)
+						assert.Equal(t, "server", blocks[0].Name)
+						assert.Equal(t, "# nginx config\n", blocks[0].Content)
+						assert.Equal(t, "example.org", blocks[0].ServerName)
+						return nil
+					},
+				),
+			},
+			{
+				// Testing Update - block content
+				Config: testAccRpaasBlockConfigWithServerName("example.net", "server", "# a different content"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2-be::my-rpaas::example.net::server"),
+					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2-be"),
+					resource.TestCheckResourceAttr(resourceName, "server_name", "example.net"),
+					resource.TestCheckResourceAttr(resourceName, "name", "server"),
+					resource.TestCheckResourceAttr(resourceName, "content", "# a different content\n"),
+					func(s *terraform.State) error {
+						blocks, err := testAPIClient.ListBlocks(context.Background(), client.ListBlocksArgs{Instance: "my-rpaas"})
+						assert.NoError(t, err)
+						assert.Len(t, blocks, 1)
+						assert.Equal(t, "server", blocks[0].Name)
+						assert.Equal(t, "# a different content\n", blocks[0].Content)
+						assert.Equal(t, "example.net", blocks[0].ServerName)
+
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccRpaasBlock_import(t *testing.T) {
 	testAPIClient, testAPIServer := setupTestAPIServer(t)
 	defer testAPIServer.Stop()
@@ -148,4 +206,20 @@ resource "rpaas_block" "custom_block_server" {
 	EOF
 }
 `, block, content)
+}
+
+func testAccRpaasBlockConfigWithServerName(serverName, block, content string) string {
+	return fmt.Sprintf(`
+resource "rpaas_block" "custom_block_server" {
+	instance     = "my-rpaas"
+	service_name = "rpaasv2-be"
+	server_name  = %q
+
+	name = %q
+
+	content = <<-EOF
+	%s
+	EOF
+}
+`, serverName, block, content)
 }

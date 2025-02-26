@@ -37,6 +37,7 @@ resource "rpaas_route" "example" {
 - `content` (String) Custom Nginx configuration content
 - `destination` (String) Custom Nginx upstream destination
 - `https_only` (Boolean) Only on https
+- `server_name` (String) Optional parameter used to match the server name in the location block. If not provided, it will apply to all servers.
 
 ### Read-Only
 
