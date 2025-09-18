@@ -17,8 +17,9 @@ resource "rpaas_cert_manager" "example" {
   service_name = "rpaasv2-be"
   instance     = "my-rpaas"
 
-  issuer    = "custom-issuer.ClusterIssuer.local"
-  dns_names = ["*.example.com", "my-instance.test"]
+  certificate_name = "example.com"
+  issuer           = "custom-issuer.ClusterIssuer.local"
+  dns_names        = ["example.com"]
 }
 ```
 
@@ -27,14 +28,11 @@ resource "rpaas_cert_manager" "example" {
 
 ### Required
 
+- `certificate_name` (String) Certificate Name
 - `dns_names` (List of String) A list of DNS names to be associated with the certificate in Subject Alternative Names extension
 - `instance` (String) RPaaS Instance Name
 - `issuer` (String) Certificate issuer name
 - `service_name` (String) RPaaS Service Name
-
-### Optional
-
-- `certificate_name` (String) Certificate Name, required on new version of RPaaS API
 
 ### Read-Only
 

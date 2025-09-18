@@ -28,10 +28,10 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 		CheckDestroy:      nil,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRpaasCertManagerConfig("my-custom-issuer", `["*.example.com", "my-instance.test"]`),
+				Config: testAccRpaasCertManagerConfigWithName("my-custom-issuer", "my-instance.test", `["*.example.com", "my-instance.test"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer"),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer::my-instance.test"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer"),
@@ -52,10 +52,10 @@ func TestAccRpaasCertManager_basic(t *testing.T) {
 			},
 			{
 				// Testing Update
-				Config: testAccRpaasCertManagerConfig("my-custom-issuer", `["my-instance.test"]`),
+				Config: testAccRpaasCertManagerConfigWithName("my-custom-issuer", "my-instance.test", `["my-instance.test"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer"),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas::my-custom-issuer::my-instance.test"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "issuer", "my-custom-issuer"),
@@ -195,16 +195,6 @@ func TestAccRpaasCertManager_import(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccRpaasCertManagerConfig(issuer, dnsNamesArray string) string {
-	return fmt.Sprintf(`
-resource "rpaas_cert_manager" "cert-manager-custom-issuer" {
-	instance     = "my-rpaas"
-	service_name = "rpaasv2"
-	issuer       = "%s"
-	dns_names    = %s
-}`, issuer, dnsNamesArray)
 }
 
 func testAccRpaasCertManagerConfigWithName(issuer, name, dnsNamesArray string) string {

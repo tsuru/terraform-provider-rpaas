@@ -49,8 +49,8 @@ func resourceRpaasCertManager() *schema.Resource {
 			"certificate_name": {
 				Type:        schema.TypeString,
 				ForceNew:    true,
-				Optional:    true,
-				Description: "Certificate Name, required on new version of RPaaS API",
+				Required:    true,
+				Description: "Certificate Name",
 			},
 			"dns_names": {
 				Type: schema.TypeList,
