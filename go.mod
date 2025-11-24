@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tsuru/go-tsuruclient v0.0.0-20240403182619-fe8da980483b
-	github.com/tsuru/rpaas-operator v0.45.1
+	github.com/tsuru/rpaas-operator v0.51.1
 	k8s.io/apimachinery v0.26.7
 )
 
@@ -25,6 +25,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/antihax/optional v1.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
