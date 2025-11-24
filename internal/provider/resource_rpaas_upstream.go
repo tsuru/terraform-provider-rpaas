@@ -122,9 +122,9 @@ func resourceRpaasUpstreamCreate(ctx context.Context, d *schema.ResourceData, me
 	args := buildUpstreamOptionsArgs(d)
 
 	tflog.Info(ctx, "Create Upstream Options", map[string]interface{}{
-		"service":      serviceName,
-		"instance":     instance,
-		"app": app,
+		"service":  serviceName,
+		"instance": instance,
+		"app":      app,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
@@ -178,7 +178,7 @@ func resourceRpaasUpstreamRead(ctx context.Context, d *schema.ResourceData, meta
 			d.Set("instance", instance)
 			d.Set("app", option.PrimaryBind)
 			d.Set("canary", option.CanaryBinds)
-			
+
 			if option.LoadBalance != "" {
 				d.Set("load_balance", string(option.LoadBalance))
 			}
@@ -212,9 +212,9 @@ func resourceRpaasUpstreamUpdate(ctx context.Context, d *schema.ResourceData, me
 	args := buildUpstreamOptionsArgs(d)
 
 	tflog.Info(ctx, "Update Upstream Options", map[string]interface{}{
-		"service":      serviceName,
-		"instance":     instance,
-		"app": app,
+		"service":  serviceName,
+		"instance": instance,
+		"app":      app,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutUpdate), func() (*http.Response, error) {
@@ -243,10 +243,10 @@ func resourceRpaasUpstreamDelete(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	tflog.Info(ctx, "Delete Upstream Options", map[string]interface{}{
-		"id":           d.Id(),
-		"service":      serviceName,
-		"instance":     instance,
-		"app": app,
+		"id":       d.Id(),
+		"service":  serviceName,
+		"instance": instance,
+		"app":      app,
 	})
 
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
@@ -321,7 +321,7 @@ func flattenTrafficShapingPolicy(tsp v1alpha1.TrafficShapingPolicy) []interface{
 	if tsp == (v1alpha1.TrafficShapingPolicy{}) {
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
 	if tsp.Weight != 0 {
 		result["weight"] = tsp.Weight
@@ -341,11 +341,11 @@ func flattenTrafficShapingPolicy(tsp v1alpha1.TrafficShapingPolicy) []interface{
 	if tsp.Cookie != "" {
 		result["cookie"] = tsp.Cookie
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
-	
+
 	return []interface{}{result}
 }
 
