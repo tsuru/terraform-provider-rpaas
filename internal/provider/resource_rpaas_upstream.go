@@ -28,6 +28,16 @@ func resourceRpaasUpstream() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: func(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+			loadBalance := diff.Get("load_balance").(string)
+			loadBalanceHashKey := diff.Get("load_balance_hash_key").(string)
+
+			if loadBalance == "chash" && loadBalanceHashKey == "" {
+				return fmt.Errorf("load_balance_hash_key is required when load_balance is set to 'chash'")
+			}
+
+			return nil
+		},
 		Schema: map[string]*schema.Schema{
 			"instance": {
 				Type:        schema.TypeString,
@@ -90,16 +100,16 @@ func resourceRpaasUpstream() *schema.Resource {
 							Description: "Header on which to redirect requests to this backend",
 						},
 						"header_value": {
-							Type:        schema.TypeString,
-							Optional:    true,
+							Type:          schema.TypeString,
+							Optional:      true,
 							ConflictsWith: []string{"traffic_shaping_policy.0.header_pattern"},
-							Description: "Header value on which to redirect requests to this backend",
+							Description:   "Header value on which to redirect requests to this backend",
 						},
 						"header_pattern": {
-							Type:        schema.TypeString,
-							Optional:    true,
+							Type:          schema.TypeString,
+							Optional:      true,
 							ConflictsWith: []string{"traffic_shaping_policy.0.header_value"},
-							Description: "Header value match pattern, support exact, regex",
+							Description:   "Header value match pattern, support exact, regex",
 						},
 						"cookie": {
 							Type:        schema.TypeString,

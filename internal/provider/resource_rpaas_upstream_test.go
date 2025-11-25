@@ -6,6 +6,7 @@ package provider
 
 import (
 	"context"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -99,6 +100,23 @@ func TestAccResourceRpaasUpstreamLoadBalanceChash(t *testing.T) {
 						return nil
 					},
 				),
+			},
+		},
+	})
+}
+
+// Test upstream with load balance chash validation - should fail when hash_key is missing
+func TestAccResourceRpaasUpstreamLoadBalanceChashValidation(t *testing.T) {
+	_, testAPIServer := setupTestAPIServer(t)
+	defer testAPIServer.Stop()
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceRpaasUpstreamLoadBalanceConfig("chash", ""),
+				ExpectError: regexp.MustCompile("load_balance_hash_key is required when load_balance is set to 'chash'"),
 			},
 		},
 	})
