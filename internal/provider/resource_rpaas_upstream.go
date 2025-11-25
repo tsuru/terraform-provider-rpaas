@@ -309,22 +309,22 @@ func buildUpstreamOptionsArgs(d *schema.ResourceData) client.UpstreamOptionsArgs
 			tspMap := tspList[0].(map[string]interface{})
 			tsp := client.TrafficShapingPolicy{}
 
-			if weight, ok := tspMap["weight"]; ok {
+			if weight, ok := tspMap["weight"]; ok && weight.(int) != 0 {
 				tsp.Weight = weight.(int)
 			}
-			if weightTotal, ok := tspMap["weight_total"]; ok {
+			if weightTotal, ok := tspMap["weight_total"]; ok && weightTotal.(int) != 0 {
 				tsp.WeightTotal = weightTotal.(int)
 			}
-			if header, ok := tspMap["header"]; ok {
+			if header, ok := tspMap["header"]; ok && header.(string) != "" {
 				tsp.Header = header.(string)
 			}
-			if headerValue, ok := tspMap["header_value"]; ok {
+			if headerValue, ok := tspMap["header_value"]; ok && headerValue.(string) != "" {
 				tsp.HeaderValue = headerValue.(string)
 			}
-			if headerPattern, ok := tspMap["header_pattern"]; ok {
+			if headerPattern, ok := tspMap["header_pattern"]; ok && headerPattern.(string) != "" {
 				tsp.HeaderPattern = headerPattern.(string)
 			}
-			if cookie, ok := tspMap["cookie"]; ok {
+			if cookie, ok := tspMap["cookie"]; ok && cookie.(string) != "" {
 				tsp.Cookie = cookie.(string)
 			}
 
