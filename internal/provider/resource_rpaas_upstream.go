@@ -1,3 +1,7 @@
+// Copyright 2025 tsuru authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package provider
 
 import (
@@ -183,7 +187,7 @@ func resourceRpaasUpstreamRead(ctx context.Context, d *schema.ResourceData, meta
 				d.Set("load_balance", string(option.LoadBalance))
 			}
 
-			// Note: LoadBalanceHashKey não está disponível no tipos UpstreamOptions atual do client
+			// Note: LoadBalanceHashKey is not available in the current UpstreamOptions types from the client
 
 			if tsp := flattenTrafficShapingPolicy(option.TrafficShapingPolicy); len(tsp) > 0 {
 				d.Set("traffic_shaping_policy", tsp)
