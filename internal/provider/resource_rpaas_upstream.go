@@ -92,11 +92,13 @@ func resourceRpaasUpstream() *schema.Resource {
 						"header_value": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							ConflictsWith: []string{"traffic_shaping_policy.0.header_pattern"},
 							Description: "Header value on which to redirect requests to this backend",
 						},
 						"header_pattern": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							ConflictsWith: []string{"traffic_shaping_policy.0.header_value"},
 							Description: "Header value match pattern, support exact, regex",
 						},
 						"cookie": {
