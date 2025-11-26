@@ -104,6 +104,22 @@ func testAccResourceExists(resourceName string) resource.TestCheckFunc {
 }
 
 func fakeRuntimeObjects() []runtime.Object {
+	return fakeRuntimeObjectsWithBinds(
+		"test-app",
+		"primary-app",
+		"canary-app",
+	)
+}
+
+func fakeRuntimeObjectsWithBinds(bindNames ...string) []runtime.Object {
+	// Create binds slice
+	binds := make([]v1alpha1.Bind, len(bindNames))
+	for i, bindName := range bindNames {
+		binds[i] = v1alpha1.Bind{
+			Name: bindName,
+		}
+	}
+
 	return []runtime.Object{
 		&v1alpha1.RpaasPlan{
 			ObjectMeta: metav1.ObjectMeta{
@@ -115,6 +131,9 @@ func fakeRuntimeObjects() []runtime.Object {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-rpaas",
 				Namespace: "rpaasv2",
+			},
+			Spec: v1alpha1.RpaasInstanceSpec{
+				Binds: binds,
 			},
 		},
 		&cmv1.ClusterIssuer{
