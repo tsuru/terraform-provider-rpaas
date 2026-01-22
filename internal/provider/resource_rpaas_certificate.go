@@ -90,7 +90,7 @@ func resourceRpaasCertificateCreate(ctx context.Context, d *schema.ResourceData,
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create certificate %s for instance %s: %v", certName, instance, err)
+		return diag.Errorf("Unable to create certificate %s for instance %s: %v", certName, instance, expandAPIError(err))
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, certName))
@@ -128,7 +128,7 @@ func resourceRpaasCertificateRead(ctx context.Context, d *schema.ResourceData, m
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to read rpaas instance %s: %v", instance, err)
+		return diag.Errorf("Unable to read rpaas instance %s: %v", instance, expandAPIError(err))
 	}
 
 	for _, certificate := range info.Certificates {
@@ -172,7 +172,7 @@ func resourceRpaasCertificateUpdate(ctx context.Context, d *schema.ResourceData,
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to update certificate %s for instance %s: %v", certName, instance, err)
+		return diag.Errorf("Unable to update certificate %s for instance %s: %v", certName, instance, expandAPIError(err))
 	}
 
 	return resourceRpaasCertificateRead(ctx, d, meta)

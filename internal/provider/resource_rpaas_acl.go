@@ -76,7 +76,7 @@ func resourceRpaasACLCreate(ctx context.Context, d *schema.ResourceData, meta in
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create ACL for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to create ACL for instance %s: %v", instance, expandAPIError(err))
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s::%s::%d", serviceName, instance, host, port))
@@ -111,7 +111,7 @@ func resourceRpaasACLRead(ctx context.Context, d *schema.ResourceData, meta inte
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to list ACL for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to list ACL for instance %s: %v", instance, expandAPIError(err))
 	}
 
 	for _, acl := range acls {
@@ -156,7 +156,7 @@ func resourceRpaasACLDelete(ctx context.Context, d *schema.ResourceData, meta in
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to delete ACL for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to delete ACL for instance %s: %v", instance, expandAPIError(err))
 	}
 
 	return nil

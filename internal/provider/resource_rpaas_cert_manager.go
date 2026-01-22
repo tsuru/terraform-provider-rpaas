@@ -101,7 +101,7 @@ func resourceRpaasCertManagerCreate(ctx context.Context, d *schema.ResourceData,
 	})
 
 	if err != nil {
-		return diag.Errorf("could not create Cert Manager request: %v", err)
+		return diag.Errorf("could not create Cert Manager request: %v", expandAPIError(err))
 	}
 
 	var id string
@@ -152,7 +152,7 @@ func resourceRpaasCertManagerRead(ctx context.Context, d *schema.ResourceData, m
 	})
 
 	if err != nil {
-		return diag.Errorf("could not list Cert Manager requests: %v", err)
+		return diag.Errorf("could not list Cert Manager requests: %v", expandAPIError(err))
 	}
 
 	request, found := findCertManagerRequestByIssuerAndName(requests, issuer, certificateName)
@@ -200,7 +200,7 @@ func resourceRpaasCertManagerUpdate(ctx context.Context, d *schema.ResourceData,
 		})
 	})
 	if err != nil {
-		return diag.Errorf("could not update Cert Manager request: %v", err)
+		return diag.Errorf("could not update Cert Manager request: %v", expandAPIError(err))
 	}
 
 	return resourceRpaasCertManagerRead(ctx, d, meta)
@@ -236,7 +236,7 @@ func resourceRpaasCertManagerDelete(ctx context.Context, d *schema.ResourceData,
 	})
 
 	if err != nil {
-		return diag.Errorf("cannot remove Cert Manager request: %v", err)
+		return diag.Errorf("cannot remove Cert Manager request: %v", expandAPIError(err))
 	}
 
 	return nil

@@ -160,7 +160,7 @@ func resourceRpaasRouteRead(ctx context.Context, d *schema.ResourceData, meta in
 
 	var routes []types.Route
 
-	rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
+	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutRead), func() (*http.Response, error) {
 		r, nerr := rpaasClient.ListRoutes(ctx, rpaas_client.ListRoutesArgs{Instance: instance})
 		if nerr != nil {
 			return nil, nerr

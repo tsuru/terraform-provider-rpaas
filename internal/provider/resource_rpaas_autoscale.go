@@ -107,7 +107,7 @@ func resourceRpaasAutoscaleCreate(ctx context.Context, d *schema.ResourceData, m
 	})
 
 	if err != nil {
-		return diag.Errorf("could not update the autoscale config on RPaaS: %s", err)
+		return diag.Errorf("could not update the autoscale config on RPaaS: %s", expandAPIError(err))
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s", service, instance))
@@ -143,7 +143,7 @@ func resourceRpaasAutoscaleRead(ctx context.Context, d *schema.ResourceData, met
 	})
 
 	if err != nil {
-		return diag.Errorf("could not get autoscale params from RPaaS API: %s", err)
+		return diag.Errorf("could not get autoscale params from RPaaS API: %s", expandAPIError(err))
 	}
 
 	if autoscale == nil {
@@ -194,7 +194,7 @@ func resourceRpaasAutoscaleUpdate(ctx context.Context, d *schema.ResourceData, m
 	})
 
 	if err != nil {
-		return diag.Errorf("could not update the autoscale config on RPaaS API: %s", err)
+		return diag.Errorf("could not update the autoscale config on RPaaS API: %s", expandAPIError(err))
 	}
 
 	return nil
@@ -216,7 +216,7 @@ func resourceRpaasAutoscaleDelete(ctx context.Context, d *schema.ResourceData, m
 	})
 
 	if err != nil {
-		return diag.Errorf("could not remove the autoscale config from RPaaS API: %s", err)
+		return diag.Errorf("could not remove the autoscale config from RPaaS API: %s", expandAPIError(err))
 	}
 
 	d.SetId("")
