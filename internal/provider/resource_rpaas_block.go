@@ -113,7 +113,7 @@ func resourceRpaasBlockCreate(ctx context.Context, d *schema.ResourceData, meta 
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, err)
+		return diag.Errorf("Unable to create/update block %s for instance %s: %v", blockName, instance, expandAPIError(err))
 	}
 
 	if serverName == "" {
@@ -158,7 +158,7 @@ func resourceRpaasBlockUpdate(ctx context.Context, d *schema.ResourceData, meta 
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to update block %s for instance %s: %v", blockName, instance, err)
+		return diag.Errorf("Unable to update block %s for instance %s: %v", blockName, instance, expandAPIError(err))
 	}
 
 	return resourceRpaasBlockRead(ctx, d, meta)
@@ -195,7 +195,7 @@ func resourceRpaasBlockRead(ctx context.Context, d *schema.ResourceData, meta in
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to get block %s for instance %s: %v", blockName, instance, err)
+		return diag.Errorf("Unable to get block %s for instance %s: %v", blockName, instance, expandAPIError(err))
 	}
 
 	// auto-fix old buggy ID
@@ -260,7 +260,7 @@ func resourceRpaasBlockDelete(ctx context.Context, d *schema.ResourceData, meta 
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to remove block for instance %s: %v", instance, err)
+		return diag.Errorf("Unable to remove block for instance %s: %v", instance, expandAPIError(err))
 	}
 
 	return nil

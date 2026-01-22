@@ -95,7 +95,7 @@ func resourceRpaasFileCreate(ctx context.Context, d *schema.ResourceData, meta i
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to create file %q for instance %s: %v", filename, instance, err)
+		return diag.Errorf("Unable to create file %q for instance %s: %v", filename, instance, expandAPIError(err))
 	}
 
 	d.SetId(fmt.Sprintf("%s::%s::%s", serviceName, instance, filename))
@@ -137,7 +137,7 @@ func resourceRpaasFileUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	})
 
 	if err != nil {
-		return diag.Errorf("Unable to update file %q for instance %s: %v", filename, instance, err)
+		return diag.Errorf("Unable to update file %q for instance %s: %v", filename, instance, expandAPIError(err))
 	}
 
 	return resourceRpaasFileRead(ctx, d, meta)
@@ -177,7 +177,7 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 		return nil
 	}
 	if err != nil {
-		return diag.Errorf("Error getting file %q from %s/%s: %v", filename, serviceName, instance, err)
+		return diag.Errorf("Error getting file %q from %s/%s: %v", filename, serviceName, instance, expandAPIError(err))
 	}
 
 	d.Set("service_name", serviceName)
