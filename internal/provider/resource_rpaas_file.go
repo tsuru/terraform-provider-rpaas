@@ -172,7 +172,7 @@ func resourceRpaasFileRead(ctx context.Context, d *schema.ResourceData, meta int
 		return nil, nil
 	})
 
-	if rpaas_client.IsNotFoundError(err) {
+	if isNotFoundError(err) {
 		d.SetId("")
 		return nil
 	}

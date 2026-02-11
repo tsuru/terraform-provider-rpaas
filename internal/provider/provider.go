@@ -264,6 +264,18 @@ func rpaasRetry(ctx context.Context, timeout time.Duration, retryFunc func() (*h
 	})
 }
 
+// isNotFoundError checks if an error is an HTTP 404 Not Found error.
+// This function was previously part of the rpaas client but was removed on https://github.com/tsuru/rpaas-operator/commit/8afe115.
+func isNotFoundError(err error) bool {
+	if httpErr, ok := err.(*rpaasclient.ErrUnexpectedStatusCode); ok {
+		if httpErr.Status == http.StatusNotFound {
+			return true
+		}
+	}
+
+	return false
+}
+
 func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
 	parts := strings.Split(id, "::")
 	if len(parts) != 2 {
