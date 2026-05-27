@@ -27,6 +27,13 @@ resource "rpaas_autoscale" "example" {
     start        = "00 20 * * 2"
     end          = "00 01 * * 3"
   }
+
+  scale_down {
+    # maximum number of pods to remove per 60s period
+    units = 2
+    # stabilization window in seconds before scaling down
+    stabilization_window = 300
+  }
 }
 ```
 
