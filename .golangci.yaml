@@ -1,22 +1,38 @@
+version: "2"
 run:
-  deadline: 5m
   tests: true
-linters-settings:
-  govet:
-    check-shadowing: true
-  gofmt:
-    simplify: true
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/tsuru/terraform-provider-rpaas)
 linters:
   enable:
-    - goimports
-    - gofmt
     - misspell
-    - govet
-    - gci
   disable:
     - errcheck
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/tsuru/terraform-provider-rpaas)
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
