@@ -1,8 +1,6 @@
 module github.com/tsuru/terraform-provider-rpaas
 
-go 1.24.0
-
-toolchain go1.24.3
+go 1.24.3
 
 require (
 	github.com/cert-manager/cert-manager v1.9.0

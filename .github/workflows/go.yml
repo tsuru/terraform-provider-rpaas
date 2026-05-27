@@ -1,30 +1,26 @@
 name: CI
-
 on:
   push: {}
   pull_request: {}
-
 permissions:
   contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
-      with:
-        go-version: "1.22"
-    - run: make test
-
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.3"
+      - run: make test
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
-      with:
-        go-version: "1.22"
-    - uses: golangci/golangci-lint-action@v3
-      with:
-        version: v1.61.0
-        args: --timeout=1m30s
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.3"
+      - uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.61.0
+          args: --timeout=1m30s

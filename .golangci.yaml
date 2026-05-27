@@ -1,26 +1,22 @@
 run:
   deadline: 5m
   tests: true
-
 linters-settings:
   govet:
     check-shadowing: true
-
   gofmt:
     simplify: true
-
   gci:
     sections:
-    - standard
-    - default
-    - prefix(github.com/tsuru/terraform-provider-rpaas)
-
+      - standard
+      - default
+      - prefix(github.com/tsuru/terraform-provider-rpaas)
 linters:
   enable:
-  - goimports
-  - gofmt
-  - misspell
-  - govet
-  - gci
+    - goimports
+    - gofmt
+    - misspell
+    - govet
+    - gci
   disable:
-  - errcheck
+    - errcheck
