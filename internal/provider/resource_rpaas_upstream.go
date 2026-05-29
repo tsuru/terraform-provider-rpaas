@@ -371,7 +371,7 @@ func parseUpstreamOptionsID(id string) (serviceName string, instance string, app
 	splitID := strings.Split(id, "::")
 
 	if len(splitID) != 3 {
-		return "", "", "", fmt.Errorf("Could not parse id %q. Format should be \"service::instance::app\"", id)
+		return "", "", "", fmt.Errorf("could not parse id %q. Format should be \"service::instance::app\"", id)
 	}
 
 	return splitID[0], splitID[1], splitID[2], nil

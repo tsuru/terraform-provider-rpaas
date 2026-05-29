@@ -74,7 +74,6 @@ func resourceRpaasACLCreate(ctx context.Context, d *schema.ResourceData, meta in
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutCreate), func() (*http.Response, error) {
 		return nil, rpaasClient.AddAccessControlList(ctx, instance, host, port)
 	})
-
 	if err != nil {
 		return diag.Errorf("Unable to create ACL for instance %s: %v", instance, err)
 	}
@@ -109,7 +108,6 @@ func resourceRpaasACLRead(ctx context.Context, d *schema.ResourceData, meta inte
 		acls = a
 		return nil, nil
 	})
-
 	if err != nil {
 		return diag.Errorf("Unable to list ACL for instance %s: %v", instance, err)
 	}
@@ -132,7 +130,6 @@ func resourceRpaasACLRead(ctx context.Context, d *schema.ResourceData, meta inte
 func resourceRpaasACLDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	serviceName, instance, host, port, err := parseACLID(id)
-
 	if err != nil {
 		return diag.Errorf("Unable to parse ACL ID: %v", err)
 	}
@@ -154,7 +151,6 @@ func resourceRpaasACLDelete(ctx context.Context, d *schema.ResourceData, meta in
 	err = rpaasRetry(ctx, d.Timeout(schema.TimeoutDelete), func() (*http.Response, error) {
 		return nil, rpaasClient.RemoveAccessControlList(ctx, instance, host, port)
 	})
-
 	if err != nil {
 		return diag.Errorf("Unable to delete ACL for instance %s: %v", instance, err)
 	}
@@ -166,9 +162,9 @@ func parseACLID(id string) (serviceName string, instance string, host string, po
 	splitID := strings.Split(id, "::")
 
 	if len(splitID) != 4 {
-		serviceName, instance, host, port, err = parseACLID_legacyV0(id)
+		serviceName, instance, host, port, err = parseACLIDLegacyV0(id)
 		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::host::port\"", id)
+			err = fmt.Errorf("could not parse id %q. Format should be \"service::instance::host::port\"", id)
 		}
 		return
 	}
@@ -177,25 +173,25 @@ func parseACLID(id string) (serviceName string, instance string, host string, po
 	instance = splitID[1]
 	host = splitID[2]
 	if port, err = strconv.Atoi(splitID[3]); err != nil {
-		err = fmt.Errorf("Resource id %q has a wrong format. Format should be \"service::instance::host::port\" (port must be integer).", id)
+		err = fmt.Errorf("resource id %q has a wrong format. Format should be \"service::instance::host::port\" (port must be integer)", id)
 	}
 	return
 }
 
-func parseACLID_legacyV0(id string) (serviceName string, instance string, host string, port int, err error) {
+func parseACLIDLegacyV0(id string) (serviceName string, instance string, host string, port int, err error) {
 	parts0 := strings.Split(id, " ")
 	if len(parts0) != 2 {
-		return "", "", "", 0, fmt.Errorf("invalid ACL ID. Legacy format: \"service/instance host:port\".")
+		return "", "", "", 0, fmt.Errorf("invalid ACL ID. Legacy format: \"service/instance host:port\"")
 	}
 
 	parts1 := strings.Split(parts0[0], "/")
 	if len(parts1) != 2 {
-		return "", "", "", 0, fmt.Errorf("invalid ACL ID. Legacy format: \"service/instance host:port\".")
+		return "", "", "", 0, fmt.Errorf("invalid ACL ID. Legacy format: \"service/instance host:port\"")
 	}
 
 	parts2 := strings.Split(parts0[1], ":")
 	if len(parts2) != 2 {
-		return "", "", "", 0, fmt.Errorf("invalid ACL ID. Legacy format: \"service/instance host:port\".")
+		return "", "", "", 0, fmt.Errorf("invalid ACL ID. Legacy format: \"service/instance host:port\"")
 	}
 
 	port, _ = strconv.Atoi(parts2[1])

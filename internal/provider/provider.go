@@ -264,12 +264,24 @@ func rpaasRetry(ctx context.Context, timeout time.Duration, retryFunc func() (*h
 	})
 }
 
+// isNotFoundError checks if an error is an HTTP 404 Not Found error.
+// This function was previously part of the rpaas client but was removed on https://github.com/tsuru/rpaas-operator/commit/8afe115.
+func isNotFoundError(err error) bool {
+	if httpErr, ok := err.(*rpaasclient.ErrUnexpectedStatusCode); ok {
+		if httpErr.Status == http.StatusNotFound {
+			return true
+		}
+	}
+
+	return false
+}
+
 func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
 	parts := strings.Split(id, "::")
 	if len(parts) != 2 {
 		serviceName, instance, err = parseRpaasInstanceID_legacyV0(id)
 		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be service::instance", id)
+			err = fmt.Errorf("could not parse id %q. Format should be service::instance", id)
 		}
 		return
 	}
@@ -280,7 +292,7 @@ func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
 func parseRpaasInstanceID_legacyV0(id string) (serviceName, instance string, err error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Legacy ID cound not be parsed. Legacy format: service/instance")
+		return "", "", fmt.Errorf("legacy ID cound not be parsed. Legacy format: service/instance")
 	}
 
 	return parts[0], parts[1], nil

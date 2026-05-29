@@ -27,6 +27,13 @@ resource "rpaas_autoscale" "example" {
     start        = "00 20 * * 2"
     end          = "00 01 * * 3"
   }
+
+  scale_down {
+    # maximum number of pods to remove per 60s period
+    units = 2
+    # stabilization window in seconds before scaling down
+    stabilization_window = 300
+  }
 }
 ```
 
@@ -42,6 +49,7 @@ resource "rpaas_autoscale" "example" {
 
 ### Optional
 
+- `scale_down` (Block List, Max: 1) Behavior of the auto scale down (see [below for nested schema](#nestedblock--scale_down))
 - `scheduled_window` (Block List) Scheduled windows are recurring (or not) time windows where the instance can scale in/out your min replicas regardless of traffic or resource utilization. (see [below for nested schema](#nestedblock--scheduled_window))
 - `target_cpu_utilization_percentage` (Number) Target average CPU utilization (represented as a percentage of requested CPU) over all the pods.
 - `target_requests_per_second` (Number) Target average of HTTP requests per second over the serving pods
@@ -49,6 +57,16 @@ resource "rpaas_autoscale" "example" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--scale_down"></a>
+### Nested Schema for `scale_down`
+
+Optional:
+
+- `percentage` (Number) Percentage of units to scale down
+- `stabilization_window` (Number) Stabilization window in seconds
+- `units` (Number) Number of units to scale down
+
 
 <a id="nestedblock--scheduled_window"></a>
 ### Nested Schema for `scheduled_window`

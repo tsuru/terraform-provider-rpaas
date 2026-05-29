@@ -30,11 +30,11 @@ resource "rpaas_autoscale" "my-rpaas" {
   service_name = "rpaasv2"
   instance     = "my-rpaas"
 
-  min_replicas = 0
+  min_replicas = 2
   max_replicas = 10
 
   scheduled_window {
-    min_replicas = 1
+    min_replicas = 2
     start        = "00 08 * * 1-5"
     end          = "00 20 * * 1-5"
   }
@@ -50,10 +50,10 @@ resource "rpaas_autoscale" "my-rpaas" {
 					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "instance", "my-rpaas"),
-					resource.TestCheckResourceAttr(resourceName, "min_replicas", "0"),
+					resource.TestCheckResourceAttr(resourceName, "min_replicas", "2"),
 					resource.TestCheckResourceAttr(resourceName, "max_replicas", "10"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.#", "2"),
-					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.min_replicas", "1"),
+					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.min_replicas", "2"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.start", "00 08 * * 1-5"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.end", "00 20 * * 1-5"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.1.min_replicas", "10"),
@@ -68,11 +68,11 @@ resource "rpaas_autoscale" "my-rpaas" {
   service_name = "rpaasv2"
   instance     = "my-rpaas"
 
-  min_replicas = 0
+  min_replicas = 2
   max_replicas = 10
 
   scheduled_window {
-    min_replicas = 1
+    min_replicas = 2
     start        = "00 08 * * 1-5"
     end          = "00 20 * * 1-5"
   }
@@ -82,10 +82,138 @@ resource "rpaas_autoscale" "my-rpaas" {
 					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas"),
 					resource.TestCheckResourceAttr(resourceName, "service_name", "rpaasv2"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.min_replicas", "1"),
+					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.min_replicas", "2"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.start", "00 08 * * 1-5"),
 					resource.TestCheckResourceAttr(resourceName, "scheduled_window.0.end", "00 20 * * 1-5"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccRpaasAutoscale_scaleDown(t *testing.T) {
+	server, _ := setupTestRpaasServer(t)
+	defer server.Stop()
+
+	resourceName := "rpaas_autoscale.my-rpaas"
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "rpaas_autoscale" "my-rpaas" {
+  service_name = "rpaasv2"
+  instance     = "my-rpaas"
+
+  min_replicas = 2
+  max_replicas = 10
+
+  target_cpu_utilization_percentage = 70
+
+  scale_down {
+    units                = 2
+    stabilization_window = 120
+  }
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "id", "rpaasv2::my-rpaas"),
+					resource.TestCheckResourceAttr(resourceName, "min_replicas", "2"),
+					resource.TestCheckResourceAttr(resourceName, "max_replicas", "10"),
+					resource.TestCheckResourceAttr(resourceName, "target_cpu_utilization_percentage", "70"),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.0.units", "2"),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.0.stabilization_window", "120"),
+				),
+			},
+			{
+				Config: `
+resource "rpaas_autoscale" "my-rpaas" {
+  service_name = "rpaasv2"
+  instance     = "my-rpaas"
+
+  min_replicas = 2
+  max_replicas = 10
+
+  target_cpu_utilization_percentage = 70
+
+  scale_down {
+    units                = 2
+    percentage           = 50
+    stabilization_window = 120
+  }
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.0.units", "2"),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.0.percentage", "50"),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.0.stabilization_window", "120"),
+				),
+			},
+			{
+				Config: `
+resource "rpaas_autoscale" "my-rpaas" {
+  service_name = "rpaasv2"
+  instance     = "my-rpaas"
+
+  min_replicas = 2
+  max_replicas = 10
+
+  target_cpu_utilization_percentage = 70
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccResourceExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "scale_down.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRpaasAutoscale_scaleDown_import(t *testing.T) {
+	server, provider := setupTestRpaasServer(t)
+	defer server.Stop()
+
+	_, err := provider.Client("rpaasv2", "my-rpaas").RpaasApi.UpdateAutoscale(context.Background(), "my-rpaas").
+		Autoscale(autogenerated.Autoscale{
+			MinReplicas: 2,
+			MaxReplicas: 10,
+			Cpu:         autogenerated.PtrInt32(70),
+			Behavior: &autogenerated.Behavior{
+				ScaleDown: &autogenerated.ScaleDown{
+					UnitsPolicyValue:           autogenerated.PtrInt32(3),
+					PercentPolicyValue:         autogenerated.PtrInt32(25),
+					StabilizationWindowSeconds: autogenerated.PtrInt32(300),
+				},
+			},
+		}).
+		Execute()
+	require.NoError(t, err, "could not set the initial autoscale config")
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      nil,
+		Steps: []resource.TestStep{
+			{
+				Config:        `resource "rpaas_autoscale" "imported" {}`,
+				ResourceName:  "rpaas_autoscale.imported",
+				ImportStateId: "rpaasv2::my-rpaas",
+				ImportState:   true,
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					assert.Len(t, s, 1)
+					state := s[0]
+					assert.Equal(t, "rpaasv2", state.Attributes["service_name"])
+					assert.Equal(t, "my-rpaas", state.Attributes["instance"])
+					assert.Equal(t, "2", state.Attributes["min_replicas"])
+					assert.Equal(t, "10", state.Attributes["max_replicas"])
+					assert.Equal(t, "1", state.Attributes["scale_down.#"])
+					assert.Equal(t, "3", state.Attributes["scale_down.0.units"])
+					assert.Equal(t, "25", state.Attributes["scale_down.0.percentage"])
+					assert.Equal(t, "300", state.Attributes["scale_down.0.stabilization_window"])
+					return nil
+				},
 			},
 		},
 	})

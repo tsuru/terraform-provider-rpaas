@@ -281,7 +281,7 @@ func updateRpaasRoute(ctx context.Context, d *schema.ResourceData, instance, ser
 func parseRpaasRouteID_legacyV0(id string) (serviceName, instance string, err error) {
 	splitID := strings.Split(id, "/")
 	if len(splitID) != 2 {
-		err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::path\" or \"service::instance::serverName::path\"", id)
+		err = fmt.Errorf("could not parse id %q. Format should be \"service::instance::path\" or \"service::instance::serverName::path\"", id)
 		return
 	}
 
