@@ -270,7 +270,7 @@ func parseCertManagerID(id string) (serviceName, instance, issuer, name string, 
 	if len(splitID) > 4 || len(splitID) < 3 {
 		serviceName, instance, issuer, err = parseCertManagerID_legacyV0(id)
 		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::issuer::certificateName\"", id)
+			err = fmt.Errorf("could not parse id %q. Format should be \"service::instance::issuer::certificateName\"", id)
 		}
 		return
 	}
@@ -287,7 +287,7 @@ func parseCertManagerID(id string) (serviceName, instance, issuer, name string, 
 func parseCertManagerID_legacyV0(id string) (serviceName, instance, issuer string, err error) {
 	splitID := strings.Split(id, " ")
 	if len(splitID) != 3 {
-		err = fmt.Errorf("Legacy ID cound not be parsed. Legacy format: \"service instance issuer\"")
+		err = fmt.Errorf("legacy ID cound not be parsed. Legacy format: \"service instance issuer\"")
 		return
 	}
 

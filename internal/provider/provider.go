@@ -281,7 +281,7 @@ func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
 	if len(parts) != 2 {
 		serviceName, instance, err = parseRpaasInstanceID_legacyV0(id)
 		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be service::instance", id)
+			err = fmt.Errorf("could not parse id %q. Format should be service::instance", id)
 		}
 		return
 	}
@@ -292,7 +292,7 @@ func parseRpaasInstanceID(id string) (serviceName, instance string, err error) {
 func parseRpaasInstanceID_legacyV0(id string) (serviceName, instance string, err error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Legacy ID cound not be parsed. Legacy format: service/instance")
+		return "", "", fmt.Errorf("legacy ID cound not be parsed. Legacy format: service/instance")
 	}
 
 	return parts[0], parts[1], nil

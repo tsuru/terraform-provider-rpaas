@@ -289,7 +289,7 @@ func parseRpaasBlockID_legacyV0(id string) (serviceName, instance, blockName str
 	splitID := strings.Split(id, "/")
 
 	if len(splitID) != 2 {
-		err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::blockName\" or \"service::instance::serverName::blockName\"", id)
+		err = fmt.Errorf("could not parse id %q. Format should be \"service::instance::blockName\" or \"service::instance::serverName::blockName\"", id)
 		return
 	}
 

@@ -214,7 +214,7 @@ func parseRpaasCertificateID(id string) (serviceName, instance, certName string,
 	if len(splitID) != 3 {
 		serviceName, instance, certName, err = parseRpaasCertificateID_legacyV0(id)
 		if err != nil {
-			err = fmt.Errorf("Could not parse id %q. Format should be \"service::instance::certName\"", id)
+			err = fmt.Errorf("could not parse id %q. Format should be \"service::instance::certName\"", id)
 		}
 		return
 	}
@@ -229,7 +229,7 @@ func parseRpaasCertificateID_legacyV0(id string) (serviceName, instance, certNam
 	splitID := strings.Split(id, " ")
 
 	if len(splitID) != 3 {
-		err = fmt.Errorf("Resource ID could not be parsed. Legacy format: \"service instance certName\"")
+		err = fmt.Errorf("resource ID could not be parsed. Legacy format: \"service instance certName\"")
 		return
 	}
 
